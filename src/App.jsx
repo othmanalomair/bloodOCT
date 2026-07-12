@@ -709,7 +709,7 @@ function Players({ players, roles, patch }) {
             <input
               value={p.note}
               onChange={(e) => patch(p.id, { note: e.target.value })}
-              placeholder="ملاحظة سرية…"
+              placeholder="أضف ملاحظة…"
             />
           </section>
           <button onClick={() => patch(p.id, { alive: !p.alive })}>
