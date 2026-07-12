@@ -380,6 +380,22 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.token-note {
+  display: block;
+  max-width: 110%;
+  margin-top: 3px;
+  padding: 2px 5px;
+  overflow: hidden;
+  color: #211821;
+  background: #e2c98f;
+  border-radius: 5px;
+  font-size: clamp(0.42rem, 1.8vw, 0.56rem);
+  font-style: normal;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 7px #0008;
+}
 .token > b {
   font-size: clamp(0.52rem, 2.4vw, 0.72rem);
   text-shadow: 0 2px 4px #000;
@@ -858,8 +874,8 @@ nav .vote {
   align-self: start;
 }
 .night article section p {
-  direction: ltr;
-  text-align: left;
+  direction: rtl;
+  text-align: right;
   color: #aca1ad;
   line-height: 1.45;
   font-size: 0.58rem;

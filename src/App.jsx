@@ -667,6 +667,7 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
               </i>
               <b>{p.name}</b>
               <small>{p.role.name}</small>
+              {p.note?.trim() && <span className="token-note">{p.note}</span>}
             </button>
           );
         })}
@@ -836,12 +837,12 @@ const nightSpecials = {
   "Minion info": {
     icon: "/characters/generic/minion.webp",
     reminder:
-      "If there are 7 or more players: wake all Minions. Let them make eye contact, then point to the Demon.",
+      "إذا كان عدد اللاعبين 7 أو أكثر: أيقظ جميع الأتباع، ودعهم يتعرفون على بعضهم، ثم أشر لهم إلى الشيطان.",
   },
   "Demon info": {
     icon: "/characters/generic/demon.webp",
     reminder:
-      "If there are 7 or more players: show the Demon their Minions, then show 3 good characters that are not in play.",
+      "إذا كان عدد اللاعبين 7 أو أكثر: عرّف الشيطان على أتباعه، ثم اعرض عليه 3 شخصيات طيبة غير موجودة في اللعب لاستخدامها كخدعة.",
   },
 };
 function Night({ order, players, first }) {
@@ -872,6 +873,7 @@ function Night({ order, players, first }) {
               {(player || specialActive) && (
                 <p>
                   {special?.reminder ||
+                    abilitiesAr[role.id] ||
                     (first ? role.firstNightReminder : role.otherNightReminder)}
                 </p>
               )}
