@@ -1068,3 +1068,16 @@ nav button:disabled {
     padding: 6px;
   }
 }
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+    line-height: 1.25;
+    touch-action: manipulation;
+  }
+  input::placeholder {
+    font-size: 16px;
+  }
+}
