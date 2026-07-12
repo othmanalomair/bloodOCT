@@ -645,7 +645,7 @@ nav .vote {
   padding: 9px;
   border-bottom: 1px solid #322939;
   opacity: 0.25;
-  direction: ltr;
+  direction: rtl;
 }
 .night .in {
   opacity: 1;
@@ -869,6 +869,11 @@ nav .vote {
 .night article section {
   display: flex;
   flex-direction: column;
+  text-align: right;
+}
+.night article section > b {
+  direction: ltr;
+  align-self: start;
 }
 .night article section em {
   align-self: start;
@@ -930,4 +935,136 @@ nav .vote {
 nav button:disabled {
   opacity: 0.3;
   pointer-events: none;
+}
+.public-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #cba365;
+  border-bottom: 1px solid #cba36566;
+  padding: 4px 0;
+  margin: 0 0 18px;
+  font-size: 0.7rem;
+  text-decoration: none;
+}
+.public-guide-link svg {
+  width: 14px;
+}
+.guide-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+.public-guide {
+  min-height: 100dvh;
+  padding-bottom: 40px;
+}
+.public-guide-hero {
+  max-width: 720px;
+  margin: auto;
+  padding: 35px 18px 28px;
+}
+.public-guide-hero > a {
+  color: #cba365;
+  font-size: 0.68rem;
+  text-decoration: none;
+}
+.public-guide-hero > span {
+  display: block;
+  color: #8f8491;
+  font-size: 0.65rem;
+  margin-top: 28px;
+}
+.public-guide-hero h1 {
+  font-family: "Aref Ruqaa";
+  font-size: clamp(2.5rem, 10vw, 4.3rem);
+  line-height: 1.05;
+  margin: 8px 0 14px;
+}
+.public-guide-hero p {
+  color: #a298a4;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  max-width: 500px;
+}
+.public-rules {
+  max-width: 720px;
+  margin: 0 auto 22px;
+  padding: 18px;
+  background: #1b1622;
+  border-block: 1px solid #3b3041;
+}
+.public-rules h2 {
+  font-size: 1.45rem;
+}
+.public-rules > p {
+  color: #aaa0ac;
+  font-size: 0.7rem;
+  line-height: 1.8;
+}
+.public-rules > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.public-rules span {
+  background: #110e16;
+  border-radius: 10px;
+  padding: 9px;
+  color: #8f8591;
+  font-size: 0.58rem;
+}
+.public-rules span b {
+  display: block;
+  color: #cba365;
+  font-size: 0.68rem;
+}
+.public-guide-body {
+  max-width: 720px;
+  margin: auto;
+  padding: 0 13px;
+}
+.public-script-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-bottom: 22px;
+}
+.public-script-picker button {
+  background: #17121d;
+  border: 1px solid #3b3142;
+  border-radius: 12px;
+  padding: 10px 3px;
+}
+.public-script-picker button.on {
+  border-color: #cba365;
+  background: #2a2229;
+}
+.public-script-picker b,
+.public-script-picker small {
+  display: block;
+}
+.public-script-picker b {
+  font-size: 0.68rem;
+}
+.public-script-picker small {
+  color: #857b88;
+  font-size: 0.5rem;
+  direction: ltr;
+}
+@media (max-width: 480px) {
+  .public-rules > div {
+    grid-template-columns: 1fr;
+  }
+  .guide-head {
+    align-items: start;
+  }
+  .guide-actions {
+    max-width: 150px;
+  }
+  .guide-head button {
+    font-size: 0.5rem;
+    padding: 6px;
+  }
 }

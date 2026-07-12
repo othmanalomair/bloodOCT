@@ -4,12 +4,14 @@ import {
   Check,
   Circle as CircleIcon,
   Crown,
+  ExternalLink,
   Hand,
   Lock,
   Moon,
   Plus,
   RectangleHorizontal,
   RotateCcw,
+  Share2,
   Skull,
   Sun,
   Unlock,
@@ -154,6 +156,7 @@ export default function App() {
         : voters.length === highScore && highScore > 0
           ? "تعادل"
           : "يمر";
+  if (window.location.pathname === "/guide") return <PublicGuide />;
   function add() {
     let n = draft.trim();
     if (n && !g.names.includes(n) && g.names.length < 15) {
@@ -245,6 +248,9 @@ export default function App() {
           <small>STORYTELLER’S GRIMOIRE</small>
           <h1>دفتر الراوي</h1>
           <p>أدر اللعبة كاملة من تلفونك، بدون أوراق ضايعة.</p>
+          <a className="public-guide-link" href="/guide" target="_blank">
+            <BookOpen /> دليل اللاعبين العام <ExternalLink />
+          </a>
           <div className="card">
             <label>اختر السكربت</label>
             <div className="scripts">
@@ -735,8 +741,19 @@ const teamNames = {
   minion: "الأتباع",
   demon: "الشياطين",
 };
-function Guide({ roles, script, history, openLog }) {
+function Guide({ roles, script, history = [], openLog, publicView = false }) {
   const [filter, setFilter] = useState("all");
+  const [copied, setCopied] = useState(false);
+  const shareGuide = async () => {
+    const url = `${window.location.origin}/guide`;
+    if (navigator.share) {
+      await navigator.share({ title: "دليل Blood on the Clocktower", url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    }
+  };
   const visible =
     filter === "all" ? roles : roles.filter((r) => r.team === filter);
   return (
@@ -746,9 +763,16 @@ function Guide({ roles, script, history, openLog }) {
           <small>{script.name}</small>
           <h2>دليل الشخصيات</h2>
         </div>
-        <button onClick={openLog}>
-          <Vote /> سجل التصويت ({history.length})
-        </button>
+        <div className="guide-actions">
+          {!publicView && (
+            <button onClick={openLog}>
+              <Vote /> سجل التصويت ({history.length})
+            </button>
+          )}
+          <button onClick={shareGuide}>
+            <Share2 /> {copied ? "تم نسخ الرابط" : "شارك الدليل"}
+          </button>
+        </div>
       </header>
       <div className="rule-note">
         <BookOpen />
@@ -796,6 +820,62 @@ function Guide({ roles, script, history, openLog }) {
         <span>أداة مجتمعية غير رسمية</span>
       </footer>
     </div>
+  );
+}
+function PublicGuide() {
+  const [scriptId, setScriptId] = useState("tb");
+  const script = scripts[scriptId];
+  return (
+    <main className="public-guide" dir="rtl">
+      <div className="grain" />
+      <header className="public-guide-hero">
+        <a href="/">دفتر الراوي</a>
+        <span>دليل اللاعبين</span>
+        <h1>
+          تعلّم الشخصيات
+          <br />
+          قبل أن تدق الساعة
+        </h1>
+        <p>
+          مرجع عام بدون أي معلومات عن اللعبة الحالية. اختر السكربت واقرأ قدرة كل
+          شخصية وصورتها.
+        </p>
+      </header>
+      <section className="public-rules">
+        <h2>فكرة اللعبة بسرعة</h2>
+        <p>
+          فريق الخير يحاول معرفة الشيطان وإعدامه. فريق الشر يضلل البلدة ويحمي
+          الشيطان. تتعاقب الليالي والنهارات، وفي النهار يتناقش اللاعبون ويرشّحون
+          ويصوّتون.
+        </p>
+        <div>
+          <span>
+            <b>الحي</b> يرشّح ويصوّت
+          </span>
+          <span>
+            <b>الميت</b> يملك صوتاً أخيراً واحداً
+          </span>
+          <span>
+            <b>الفوز</b> بإعدام الشيطان أو وصول الشر لنهايته
+          </span>
+        </div>
+      </section>
+      <section className="public-guide-body">
+        <div className="public-script-picker">
+          {Object.entries(scripts).map(([id, item]) => (
+            <button
+              key={id}
+              className={scriptId === id ? "on" : ""}
+              onClick={() => setScriptId(id)}
+            >
+              <b>{item.ar}</b>
+              <small>{item.name}</small>
+            </button>
+          ))}
+        </div>
+        <Guide roles={script.roles} script={script} publicView />
+      </section>
+    </main>
   );
 }
 function Log({ rows }) {
