@@ -4,7 +4,6 @@ import {
   Check,
   Circle as CircleIcon,
   Crown,
-  Flame,
   Hand,
   Lock,
   Moon,
@@ -19,8 +18,19 @@ import {
   Vote,
   X,
 } from "lucide-react";
+import officialRoles from "./data/roles.json";
 import "./App.css";
-const mk = (team, s) => s.split("|").map((name) => ({ name, team }));
+const officialByName = new Map(officialRoles.map((role) => [role.name, role]));
+const mk = (team, s) =>
+  s.split("|").map((name) => {
+    const role = officialByName.get(name) || { name, team };
+    const alignment = ["townsfolk", "outsider"].includes(team) ? "g" : "e";
+    return {
+      ...role,
+      team,
+      icon: `/characters/${role.edition}/${role.id}_${alignment}.webp`,
+    };
+  });
 const scripts = {
   tb: {
     name: "Trouble Brewing",
@@ -35,7 +45,7 @@ const scripts = {
       ...mk("demon", "Imp"),
     ],
     first:
-      "Poisoner|Washerwoman|Librarian|Investigator|Chef|Empath|Fortune Teller|Butler|Spy",
+      "Minion info|Demon info|Poisoner|Washerwoman|Librarian|Investigator|Chef|Empath|Fortune Teller|Butler|Spy",
     other:
       "Poisoner|Monk|Scarlet Woman|Imp|Ravenkeeper|Empath|Fortune Teller|Undertaker|Spy",
   },
@@ -48,12 +58,12 @@ const scripts = {
         "Grandmother|Sailor|Chambermaid|Exorcist|Innkeeper|Gambler|Gossip|Courtier|Professor|Minstrel|Tea Lady|Pacifist|Fool",
       ),
       ...mk("outsider", "Tinker|Moonchild|Goon|Lunatic"),
-      ...mk("minion", "Godfather|Devil’s Advocate|Assassin|Mastermind"),
+      ...mk("minion", "Godfather|Devil's Advocate|Assassin|Mastermind"),
       ...mk("demon", "Zombuul|Pukka|Shabaloth|Po"),
     ],
-    first: "Grandmother|Sailor|Chambermaid|Godfather|Lunatic",
+    first: "Minion info|Demon info|Grandmother|Sailor|Chambermaid|Godfather|Lunatic",
     other:
-      "Sailor|Innkeeper|Courtier|Gambler|Devil’s Advocate|Lunatic|Exorcist|Zombuul|Pukka|Shabaloth|Po|Assassin|Professor|Gossip|Tinker|Moonchild|Grandmother|Chambermaid",
+      "Sailor|Innkeeper|Courtier|Gambler|Devil's Advocate|Lunatic|Exorcist|Zombuul|Pukka|Shabaloth|Po|Assassin|Professor|Gossip|Tinker|Moonchild|Grandmother|Chambermaid",
   },
   snv: {
     name: "Sects & Violets",
@@ -68,7 +78,7 @@ const scripts = {
       ...mk("demon", "Fang Gu|Vigormortis|No Dashii|Vortox"),
     ],
     first:
-      "Philosopher|Snake Charmer|Evil Twin|Witch|Cerenovus|Clockmaker|Dreamer|Seamstress",
+      "Minion info|Demon info|Philosopher|Snake Charmer|Evil Twin|Witch|Cerenovus|Clockmaker|Dreamer|Seamstress",
     other:
       "Philosopher|Snake Charmer|Witch|Cerenovus|Pit-Hag|Fang Gu|Vigormortis|No Dashii|Vortox|Barber|Sweetheart|Sage|Dreamer|Flowergirl|Town Crier|Oracle|Juggler|Mathematician",
   },
@@ -101,7 +111,18 @@ const dist = {
 export default function App() {
   const [g, setG] = useState(() => {
       try {
-        return JSON.parse(localStorage.getItem("grimoire")) || base;
+        const saved = JSON.parse(localStorage.getItem("grimoire"));
+        if (!saved) return base;
+        const currentRoles = scripts[saved.script]?.roles || [];
+        return {
+          ...saved,
+          players: (saved.players || []).map((player) => ({
+            ...player,
+            role:
+              currentRoles.find((role) => role.name === player.role?.name) ||
+              player.role,
+          })),
+        };
       } catch {
         return base;
       }
@@ -279,6 +300,14 @@ export default function App() {
             {tab === "players" && (
               <Players players={g.players} roles={s.roles} patch={patch} />
             )}{" "}
+            {tab === "guide" && (
+              <Guide
+                roles={s.roles}
+                script={s}
+                history={g.history}
+                openLog={() => setTab("log")}
+              />
+            )}{" "}
             {tab === "log" && <Log rows={g.history} />}
           </section>
           <nav>
@@ -305,11 +334,11 @@ export default function App() {
               الليل
             </button>
             <button
-              className={tab === "log" ? "on" : ""}
-              onClick={() => setTab("log")}
+              className={["guide", "log"].includes(tab) ? "on" : ""}
+              onClick={() => setTab("guide")}
             >
               <BookOpen />
-              السجل
+              الدليل
             </button>
           </nav>
         </>
@@ -385,6 +414,7 @@ export default function App() {
             <Night
               order={(g.day === 1 ? s.first : s.other).split("|")}
               players={g.players}
+              first={g.day === 1}
             />
           ) : (
             <div className="new">
@@ -521,7 +551,11 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
               onPointerUp={() => pointerUp(p)}
             >
               <i>
-                {p.alive ? <Flame /> : <Skull />}
+                {p.alive ? (
+                  <img src={p.role.icon} alt="" draggable="false" />
+                ) : (
+                  <Skull />
+                )}
                 {!p.alive && p.ghost && <Hand />}
               </i>
               <b>{p.name}</b>
@@ -542,9 +576,15 @@ function Players({ players, roles, patch }) {
   return (
     <div className="people">
       <h2>اللاعبون والأدوار</h2>
-      {players.map((p, i) => (
-        <article>
-          <i className={p.role.team}>{p.alive ? i + 1 : <Skull />}</i>
+      {players.map((p) => (
+        <article key={p.id}>
+          <i className={p.role.team}>
+            {p.alive ? (
+              <img src={p.role.icon} alt={p.role.name} />
+            ) : (
+              <Skull />
+            )}
+          </i>
           <section>
             <b>{p.name}</b>
             <select
@@ -556,9 +596,10 @@ function Players({ players, roles, patch }) {
               }
             >
               {roles.map((r) => (
-                <option>{r.name}</option>
+                <option key={r.id}>{r.name}</option>
               ))}
             </select>
+            <p className="player-ability">{p.role.ability}</p>
             <input
               value={p.note}
               onChange={(e) => patch(p.id, { note: e.target.value })}
@@ -579,6 +620,55 @@ function Players({ players, roles, patch }) {
           )}
         </article>
       ))}
+    </div>
+  );
+}
+const teamNames = {
+  townsfolk: "أهل البلدة",
+  outsider: "الغرباء",
+  minion: "الأتباع",
+  demon: "الشياطين",
+};
+function Guide({ roles, script, history, openLog }) {
+  const [filter, setFilter] = useState("all");
+  const visible = filter === "all" ? roles : roles.filter((r) => r.team === filter);
+  return (
+    <div className="guide-page">
+      <header className="guide-head">
+        <div>
+          <small>{script.name}</small>
+          <h2>دليل الشخصيات</h2>
+        </div>
+        <button onClick={openLog}>
+          <Vote /> سجل التصويت ({history.length})
+        </button>
+      </header>
+      <div className="rule-note">
+        <BookOpen />
+        <p>
+          النص الموجود على بطاقة الشخصية هو المرجع الأساسي. علامة النجمة تعني
+          أن القدرة لا تعمل في الليلة الأولى.
+        </p>
+      </div>
+      <div className="guide-filters">
+        <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>الكل</button>
+        {Object.entries(teamNames).map(([id, label]) => (
+          <button key={id} className={filter === id ? "on" : ""} onClick={() => setFilter(id)}>{label}</button>
+        ))}
+      </div>
+      <div className="role-guide">
+        {visible.map((role) => (
+          <article key={role.id} className={role.team}>
+            <i><img src={role.icon} alt="" /></i>
+            <section>
+              <header><b>{role.name}</b><span>{teamNames[role.team]}</span></header>
+              <p>{role.ability}</p>
+              {role.setup && <em>هذه الشخصية تغيّر إعداد اللعبة.</em>}
+            </section>
+          </article>
+        ))}
+      </div>
+      <footer className="ccc"><img src="/ccc-sleeve.png" alt="Community Created Content" /><span>أداة مجتمعية غير رسمية</span></footer>
     </div>
   );
 }
@@ -617,17 +707,31 @@ function Modal({ title, close, children }) {
     </div>
   );
 }
-function Night({ order, players }) {
-  let names = new Map(players.map((p) => [p.role.name, p.name]));
+const nightSpecials = {
+  "Minion info": {
+    icon: "/characters/generic/minion.webp",
+    reminder: "If there are 7 or more players: wake all Minions. Let them make eye contact, then point to the Demon.",
+  },
+  "Demon info": {
+    icon: "/characters/generic/demon.webp",
+    reminder: "If there are 7 or more players: show the Demon their Minions, then show 3 good characters that are not in play.",
+  },
+};
+function Night({ order, players, first }) {
+  let inPlay = new Map(players.map((p) => [p.role.name, p]));
   return (
     <div className="night">
-      {order.map((r, i) => (
-        <article className={names.has(r) ? "in" : ""}>
+      {order.map((r, i) => {
+        const player = inPlay.get(r);
+        const special = nightSpecials[r];
+        const specialActive = Boolean(special && players.length >= 7);
+        const role = player?.role || officialByName.get(r);
+        return <article key={r} className={player || specialActive ? "in" : ""}>
           <span>{i + 1}</span>
-          <b>{r}</b>
-          {names.has(r) && <em>{names.get(r)}</em>}
-        </article>
-      ))}
+          {(role || special) && <img src={special?.icon || role.icon || `/characters/${role.edition}/${role.id}_${["townsfolk", "outsider"].includes(role.team) ? "g" : "e"}.webp`} alt="" />}
+          <section><b>{r}</b>{player && <em>{player.name}</em>}{(player || specialActive) && <p>{special?.reminder || (first ? role.firstNightReminder : role.otherNightReminder)}</p>}</section>
+        </article>;
+      })}
       <p>الأدوار المضيئة موجودة في هذه اللعبة.</p>
     </div>
   );
