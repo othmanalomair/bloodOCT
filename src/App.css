@@ -517,6 +517,153 @@ nav .vote {
   display: flex;
   gap: 5px;
 }
+.people .reveal-role {
+  grid-column: 2 / 4;
+  width: 100%;
+  border: 1px solid #5e4b68;
+  border-radius: 10px;
+  background: #251d2c;
+  color: #d6bc82;
+  padding: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.people .reveal-role svg {
+  width: 15px;
+}
+.role-reveal {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  min-height: 100dvh;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 50% 35%, #283d49 0, transparent 38%), #100d15;
+  color: #f3eadc;
+  padding: max(18px, env(safe-area-inset-top)) 20px
+    max(28px, env(safe-area-inset-bottom));
+  animation: reveal-in 0.22s ease-out;
+}
+.role-reveal.outsider {
+  background:
+    radial-gradient(circle at 50% 35%, #37404c 0, transparent 38%), #100d15;
+}
+.role-reveal.minion {
+  background:
+    radial-gradient(circle at 50% 35%, #4a2e4d 0, transparent 38%), #100d15;
+}
+.role-reveal.demon {
+  background:
+    radial-gradient(circle at 50% 35%, #57282c 0, transparent 38%), #100d15;
+}
+.reveal-close {
+  position: fixed;
+  z-index: 2;
+  top: max(18px, env(safe-area-inset-top));
+  left: 18px;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #574a5d;
+  border-radius: 50%;
+  background: #211a29;
+  display: grid;
+  place-items: center;
+}
+.reveal-close svg {
+  width: 24px;
+}
+.reveal-content {
+  width: min(100%, 560px);
+  min-height: calc(100dvh - 60px);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.reveal-label {
+  color: #b9aeb9;
+  font-size: 0.82rem;
+}
+.reveal-content > h1 {
+  font-family: "Aref Ruqaa";
+  font-size: clamp(2.8rem, 13vw, 5rem);
+  line-height: 1;
+  margin: 5px 0 22px;
+}
+.reveal-token {
+  width: clamp(170px, 51vw, 250px);
+  aspect-ratio: 1;
+  border: 3px solid #e5d8c4;
+  border-radius: 50%;
+  background: #426e84;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    0 0 0 9px #100d15,
+    0 0 0 11px #b89b66,
+    0 22px 70px #000a;
+}
+.role-reveal.outsider .reveal-token {
+  background: #5b6879;
+}
+.role-reveal.minion .reveal-token {
+  background: #714675;
+}
+.role-reveal.demon .reveal-token {
+  background: #923e42;
+}
+.reveal-token img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+.reveal-team {
+  margin-top: 30px;
+  color: #cbaa6e;
+  font-size: 0.72rem;
+}
+.reveal-content > h2 {
+  direction: ltr;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  margin: 2px 0 16px;
+}
+.reveal-rule {
+  width: 100%;
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  background: #1b1622;
+  border: 1px solid #4b3e52;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: right;
+}
+.reveal-rule svg {
+  flex: 0 0 auto;
+  width: 22px;
+  color: #cbaa6e;
+}
+.reveal-rule p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.9;
+}
+.reveal-warning {
+  color: #817783;
+  font-size: 0.65rem;
+  margin: 14px 0 0;
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
 .ghost svg {
   width: 13px;
 }

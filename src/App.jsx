@@ -4,6 +4,7 @@ import {
   Check,
   Circle as CircleIcon,
   Crown,
+  Eye,
   ExternalLink,
   Hand,
   Lock,
@@ -134,6 +135,7 @@ export default function App() {
     [draft, setDraft] = useState(""),
     [tab, setTab] = useState("circle"),
     [sheet, setSheet] = useState(""),
+    [revealed, setRevealed] = useState(null),
     [nominator, setNominator] = useState(""),
     [nominee, setNominee] = useState(""),
     [voters, setVoters] = useState([]);
@@ -338,7 +340,12 @@ export default function App() {
               />
             )}{" "}
             {tab === "players" && (
-              <Players players={g.players} roles={s.roles} patch={patch} />
+              <Players
+                players={g.players}
+                roles={s.roles}
+                patch={patch}
+                onReveal={setRevealed}
+              />
             )}{" "}
             {tab === "guide" && (
               <Guide
@@ -554,6 +561,9 @@ export default function App() {
           )}
         </Modal>
       )}
+      {revealed && (
+        <RoleReveal player={revealed} close={() => setRevealed(null)} />
+      )}
     </main>
   );
 }
@@ -686,7 +696,7 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
     </>
   );
 }
-function Players({ players, roles, patch }) {
+function Players({ players, roles, patch, onReveal }) {
   return (
     <div className="people">
       <h2>اللاعبون والأدوار</h2>
@@ -721,6 +731,9 @@ function Players({ players, roles, patch }) {
           <button onClick={() => patch(p.id, { alive: !p.alive })}>
             {p.alive ? "حي" : "ميت"}
           </button>
+          <button className="reveal-role" onClick={() => onReveal(p)}>
+            <Eye /> اعرض الدور
+          </button>
           {!p.alive && (
             <button
               className="ghost"
@@ -733,6 +746,29 @@ function Players({ players, roles, patch }) {
         </article>
       ))}
     </div>
+  );
+}
+function RoleReveal({ player, close }) {
+  return (
+    <section className={`role-reveal ${player.role.team}`}>
+      <button className="reveal-close" onClick={close} aria-label="إغلاق">
+        <X />
+      </button>
+      <div className="reveal-content">
+        <span className="reveal-label">دورك يا</span>
+        <h1>{player.name}</h1>
+        <div className="reveal-token">
+          <img src={player.role.icon} alt={player.role.name} />
+        </div>
+        <span className="reveal-team">{teamNames[player.role.team]}</span>
+        <h2>{player.role.name}</h2>
+        <div className="reveal-rule">
+          <BookOpen />
+          <p>{abilitiesAr[player.role.id] || player.role.ability}</p>
+        </div>
+        <p className="reveal-warning">احفظ دورك ولا توري الشاشة لأحد</p>
+      </div>
+    </section>
   );
 }
 const teamNames = {
