@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import officialRoles from "./data/roles.json";
+import abilitiesAr from "./data/abilities-ar.json";
 import "./App.css";
 const officialByName = new Map(officialRoles.map((role) => [role.name, role]));
 const mk = (team, s) =>
@@ -61,7 +62,8 @@ const scripts = {
       ...mk("minion", "Godfather|Devil's Advocate|Assassin|Mastermind"),
       ...mk("demon", "Zombuul|Pukka|Shabaloth|Po"),
     ],
-    first: "Minion info|Demon info|Grandmother|Sailor|Chambermaid|Godfather|Lunatic",
+    first:
+      "Minion info|Demon info|Grandmother|Sailor|Chambermaid|Godfather|Lunatic",
     other:
       "Sailor|Innkeeper|Courtier|Gambler|Devil's Advocate|Lunatic|Exorcist|Zombuul|Pukka|Shabaloth|Po|Assassin|Professor|Gossip|Tinker|Moonchild|Grandmother|Chambermaid",
   },
@@ -130,12 +132,28 @@ export default function App() {
     [draft, setDraft] = useState(""),
     [tab, setTab] = useState("circle"),
     [sheet, setSheet] = useState(""),
+    [nominator, setNominator] = useState(""),
     [nominee, setNominee] = useState(""),
     [voters, setVoters] = useState([]);
   useEffect(() => localStorage.setItem("grimoire", JSON.stringify(g)), [g]);
   const s = scripts[g.script],
     alive = g.players.filter((p) => p.alive).length,
     need = Math.ceil(alive / 2);
+  const todayNominations = g.history.filter((row) => row.day === g.day);
+  const qualifying = todayNominations.filter((row) => row.votes >= row.need);
+  const highScore = qualifying.length
+    ? Math.max(...qualifying.map((row) => row.votes))
+    : 0;
+  const leaders = qualifying.filter((row) => row.votes === highScore);
+  const onBlock = leaders.length === 1 ? leaders[0] : null;
+  const votePreview =
+    voters.length < need
+      ? "لا يمر"
+      : voters.length > highScore
+        ? "المتصدّر"
+        : voters.length === highScore && highScore > 0
+          ? "تعادل"
+          : "يمر";
   function add() {
     let n = draft.trim();
     if (n && !g.names.includes(n) && g.names.length < 15) {
@@ -171,13 +189,14 @@ export default function App() {
   const patch = (id, x) =>
     setG((current) => ({
       ...current,
-      players: current.players.map((p) =>
-        p.id === id ? { ...p, ...x } : p,
-      ),
+      players: current.players.map((p) => (p.id === id ? { ...p, ...x } : p)),
     }));
   function saveVote() {
     let target = g.players.find((p) => p.id === nominee);
-    if (!target) return;
+    let source = g.players.find((p) => p.id === nominator);
+    if (!target || !source || !source.alive || g.phase !== "day") return;
+    if (todayNominations.some((row) => row.nominatorId === source.id)) return;
+    if (todayNominations.some((row) => row.nomineeId === target.id)) return;
     setG({
       ...g,
       players: g.players.map((p) =>
@@ -188,6 +207,9 @@ export default function App() {
           id: crypto.randomUUID(),
           day: g.day,
           name: target.name,
+          nomineeId: target.id,
+          nominator: source.name,
+          nominatorId: source.id,
           votes: voters.length,
           need,
         },
@@ -195,7 +217,21 @@ export default function App() {
       ],
     });
     setVoters([]);
+    setNominator("");
     setNominee("");
+    setSheet("");
+  }
+  function finishDay() {
+    setG((current) => ({
+      ...current,
+      players: current.players.map((player) =>
+        onBlock && player.id === onBlock.nomineeId
+          ? { ...player, alive: false }
+          : player,
+      ),
+      phase: "night",
+      day: current.day + 1,
+    }));
     setSheet("");
   }
   return (
@@ -270,11 +306,9 @@ export default function App() {
             </div>
             <button
               onClick={() =>
-                setG({
-                  ...g,
-                  phase: g.phase === "night" ? "day" : "night",
-                  day: g.phase === "day" ? g.day + 1 : g.day,
-                })
+                g.phase === "night"
+                  ? setG({ ...g, phase: "day" })
+                  : setSheet("endday")
               }
             >
               {g.phase === "night" ? <Moon /> : <Sun />}
@@ -325,7 +359,11 @@ export default function App() {
               <Users />
               اللاعبون
             </button>
-            <button className="vote" onClick={() => setSheet("vote")}>
+            <button
+              className="vote"
+              disabled={g.phase !== "day"}
+              onClick={() => setSheet("vote")}
+            >
               <Vote />
               تصويت
             </button>
@@ -350,12 +388,52 @@ export default function App() {
               ? "الترشيح والتصويت"
               : sheet === "night"
                 ? "ترتيب الليل"
-                : "لعبة جديدة"
+                : sheet === "endday"
+                  ? "إنهاء اليوم"
+                  : "لعبة جديدة"
           }
           close={() => setSheet("")}
         >
           {sheet === "vote" ? (
             <>
+              {onBlock ? (
+                <div className="on-block">
+                  <Skull />
+                  <span>
+                    <small>على منصة الإعدام حالياً</small>
+                    <b>
+                      {onBlock.name} — {onBlock.votes} أصوات
+                    </b>
+                  </span>
+                </div>
+              ) : leaders.length > 1 ? (
+                <div className="on-block tie">
+                  <Vote />
+                  <span>
+                    <small>تعادل في أعلى الأصوات</small>
+                    <b>لا يوجد إعدام حالياً</b>
+                  </span>
+                </div>
+              ) : null}
+              <label>من يرشّح؟</label>
+              <select
+                className="select"
+                value={nominator}
+                onChange={(e) => setNominator(e.target.value)}
+              >
+                <option value="">اختر لاعباً حياً…</option>
+                {g.players
+                  .filter(
+                    (p) =>
+                      p.alive &&
+                      !todayNominations.some((row) => row.nominatorId === p.id),
+                  )
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
               <label>المرشّح للإعدام</label>
               <select
                 className="select"
@@ -364,9 +442,15 @@ export default function App() {
               >
                 <option value="">اختر لاعباً…</option>
                 {g.players
-                  .filter((p) => p.alive)
+                  .filter(
+                    (p) =>
+                      !todayNominations.some((row) => row.nomineeId === p.id),
+                  )
                   .map((p) => (
-                    <option value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.alive ? "" : " (ميت)"}
+                    </option>
                   ))}
               </select>
               <div className="score">
@@ -377,7 +461,7 @@ export default function App() {
                   المطلوب<b>{need}</b>
                 </span>
                 <span className={voters.length >= need ? "pass" : ""}>
-                  النتيجة<b>{voters.length >= need ? "يمر" : "لا يمر"}</b>
+                  النتيجة<b>{votePreview}</b>
                 </span>
               </div>
               <label>اضغط على من رفع يده</label>
@@ -404,7 +488,7 @@ export default function App() {
               </div>
               <button
                 className="confirm"
-                disabled={!nominee}
+                disabled={!nominator || !nominee}
                 onClick={saveVote}
               >
                 سجّل التصويت
@@ -416,6 +500,29 @@ export default function App() {
               players={g.players}
               first={g.day === 1}
             />
+          ) : sheet === "endday" ? (
+            <div className="end-day">
+              {onBlock ? (
+                <>
+                  <Skull />
+                  <h3>سيُعدم {onBlock.name}</h3>
+                  <p>حصل على {onBlock.votes} أصوات، وهو المتصدر بدون تعادل.</p>
+                </>
+              ) : (
+                <>
+                  <Moon />
+                  <h3>لن يُعدم أحد</h3>
+                  <p>
+                    {leaders.length > 1
+                      ? "هناك تعادل في أعلى الأصوات."
+                      : "لم يحصل أي مرشح على الحد المطلوب."}
+                  </p>
+                </>
+              )}
+              <button className="confirm" onClick={finishDay}>
+                ثبّت النتيجة وانتقل إلى الليل
+              </button>
+            </div>
           ) : (
             <div className="new">
               <p>ماذا تريد أن تفعل بأسماء اللاعبين؟</p>
@@ -579,11 +686,7 @@ function Players({ players, roles, patch }) {
       {players.map((p) => (
         <article key={p.id}>
           <i className={p.role.team}>
-            {p.alive ? (
-              <img src={p.role.icon} alt={p.role.name} />
-            ) : (
-              <Skull />
-            )}
+            {p.alive ? <img src={p.role.icon} alt={p.role.name} /> : <Skull />}
           </i>
           <section>
             <b>{p.name}</b>
@@ -599,7 +702,9 @@ function Players({ players, roles, patch }) {
                 <option key={r.id}>{r.name}</option>
               ))}
             </select>
-            <p className="player-ability">{p.role.ability}</p>
+            <p className="player-ability">
+              {abilitiesAr[p.role.id] || p.role.ability}
+            </p>
             <input
               value={p.note}
               onChange={(e) => patch(p.id, { note: e.target.value })}
@@ -631,7 +736,8 @@ const teamNames = {
 };
 function Guide({ roles, script, history, openLog }) {
   const [filter, setFilter] = useState("all");
-  const visible = filter === "all" ? roles : roles.filter((r) => r.team === filter);
+  const visible =
+    filter === "all" ? roles : roles.filter((r) => r.team === filter);
   return (
     <div className="guide-page">
       <header className="guide-head">
@@ -646,29 +752,48 @@ function Guide({ roles, script, history, openLog }) {
       <div className="rule-note">
         <BookOpen />
         <p>
-          النص الموجود على بطاقة الشخصية هو المرجع الأساسي. علامة النجمة تعني
-          أن القدرة لا تعمل في الليلة الأولى.
+          النص الموجود على بطاقة الشخصية هو المرجع الأساسي. علامة النجمة تعني أن
+          القدرة لا تعمل في الليلة الأولى.
         </p>
       </div>
       <div className="guide-filters">
-        <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>الكل</button>
+        <button
+          className={filter === "all" ? "on" : ""}
+          onClick={() => setFilter("all")}
+        >
+          الكل
+        </button>
         {Object.entries(teamNames).map(([id, label]) => (
-          <button key={id} className={filter === id ? "on" : ""} onClick={() => setFilter(id)}>{label}</button>
+          <button
+            key={id}
+            className={filter === id ? "on" : ""}
+            onClick={() => setFilter(id)}
+          >
+            {label}
+          </button>
         ))}
       </div>
       <div className="role-guide">
         {visible.map((role) => (
           <article key={role.id} className={role.team}>
-            <i><img src={role.icon} alt="" /></i>
+            <i>
+              <img src={role.icon} alt="" />
+            </i>
             <section>
-              <header><b>{role.name}</b><span>{teamNames[role.team]}</span></header>
-              <p>{role.ability}</p>
+              <header>
+                <b>{role.name}</b>
+                <span>{teamNames[role.team]}</span>
+              </header>
+              <p>{abilitiesAr[role.id] || role.ability}</p>
               {role.setup && <em>هذه الشخصية تغيّر إعداد اللعبة.</em>}
             </section>
           </article>
         ))}
       </div>
-      <footer className="ccc"><img src="/ccc-sleeve.png" alt="Community Created Content" /><span>أداة مجتمعية غير رسمية</span></footer>
+      <footer className="ccc">
+        <img src="/ccc-sleeve.png" alt="Community Created Content" />
+        <span>أداة مجتمعية غير رسمية</span>
+      </footer>
     </div>
   );
 }
@@ -678,9 +803,9 @@ function Log({ rows }) {
       <h2>سجل الترشيحات</h2>
       {rows.length ? (
         rows.map((r) => (
-          <article>
+          <article key={r.id}>
             <span>اليوم {r.day}</span>
-            <b>{r.name}</b>
+            <b>{r.nominator ? `${r.nominator} ← ${r.name}` : r.name}</b>
             <em className={r.votes >= r.need ? "pass" : ""}>
               {r.votes} / {r.need}
             </em>
@@ -710,11 +835,13 @@ function Modal({ title, close, children }) {
 const nightSpecials = {
   "Minion info": {
     icon: "/characters/generic/minion.webp",
-    reminder: "If there are 7 or more players: wake all Minions. Let them make eye contact, then point to the Demon.",
+    reminder:
+      "If there are 7 or more players: wake all Minions. Let them make eye contact, then point to the Demon.",
   },
   "Demon info": {
     icon: "/characters/generic/demon.webp",
-    reminder: "If there are 7 or more players: show the Demon their Minions, then show 3 good characters that are not in play.",
+    reminder:
+      "If there are 7 or more players: show the Demon their Minions, then show 3 good characters that are not in play.",
   },
 };
 function Night({ order, players, first }) {
@@ -726,11 +853,31 @@ function Night({ order, players, first }) {
         const special = nightSpecials[r];
         const specialActive = Boolean(special && players.length >= 7);
         const role = player?.role || officialByName.get(r);
-        return <article key={r} className={player || specialActive ? "in" : ""}>
-          <span>{i + 1}</span>
-          {(role || special) && <img src={special?.icon || role.icon || `/characters/${role.edition}/${role.id}_${["townsfolk", "outsider"].includes(role.team) ? "g" : "e"}.webp`} alt="" />}
-          <section><b>{r}</b>{player && <em>{player.name}</em>}{(player || specialActive) && <p>{special?.reminder || (first ? role.firstNightReminder : role.otherNightReminder)}</p>}</section>
-        </article>;
+        return (
+          <article key={r} className={player || specialActive ? "in" : ""}>
+            <span>{i + 1}</span>
+            {(role || special) && (
+              <img
+                src={
+                  special?.icon ||
+                  role.icon ||
+                  `/characters/${role.edition}/${role.id}_${["townsfolk", "outsider"].includes(role.team) ? "g" : "e"}.webp`
+                }
+                alt=""
+              />
+            )}
+            <section>
+              <b>{r}</b>
+              {player && <em>{player.name}</em>}
+              {(player || specialActive) && (
+                <p>
+                  {special?.reminder ||
+                    (first ? role.firstNightReminder : role.otherNightReminder)}
+                </p>
+              )}
+            </section>
+          </article>
+        );
       })}
       <p>الأدوار المضيئة موجودة في هذه اللعبة.</p>
     </div>

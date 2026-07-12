@@ -240,7 +240,9 @@ h2 {
     0 0 0 8px #16111c,
     0 0 0 9px #46374b;
   touch-action: none;
-  transition: border-radius 0.25s, aspect-ratio 0.25s;
+  transition:
+    border-radius 0.25s,
+    aspect-ratio 0.25s;
 }
 .circle.board-rectangle {
   aspect-ratio: 4 / 3;
@@ -696,8 +698,8 @@ nav .vote {
   color: #aaa0ac;
   font-size: 0.6rem;
   line-height: 1.55;
-  direction: ltr;
-  text-align: left;
+  direction: rtl;
+  text-align: right;
   margin: 4px 0 7px;
 }
 .guide-head {
@@ -780,9 +782,15 @@ nav .vote {
   border-radius: 14px;
   padding: 11px;
 }
-.role-guide article.outsider { border-right-color: #78889c; }
-.role-guide article.minion { border-right-color: #9a60a0; }
-.role-guide article.demon { border-right-color: #c75358; }
+.role-guide article.outsider {
+  border-right-color: #78889c;
+}
+.role-guide article.minion {
+  border-right-color: #9a60a0;
+}
+.role-guide article.demon {
+  border-right-color: #c75358;
+}
 .role-guide article > i {
   width: 52px;
   height: 52px;
@@ -791,28 +799,64 @@ nav .vote {
   display: grid;
   place-items: center;
 }
-.role-guide article img { width: 74%; height: 74%; object-fit: contain; }
-.role-guide article header { display: flex; justify-content: space-between; gap: 8px; }
-.role-guide article header b { direction: ltr; }
-.role-guide article header span { color: #887f8a; font-size: 0.55rem; }
+.role-guide article img {
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+}
+.role-guide article header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.role-guide article header b {
+  direction: ltr;
+}
+.role-guide article header span {
+  color: #887f8a;
+  font-size: 0.55rem;
+}
 .role-guide article p {
   color: #b1a7b1;
   font-size: 0.66rem;
   line-height: 1.55;
-  direction: ltr;
-  text-align: left;
+  direction: rtl;
+  text-align: right;
   margin: 5px 0 0;
 }
-.role-guide article em { color: #cba365; font-size: 0.55rem; }
-.ccc { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 24px 0; color: #746b76; font-size: 0.55rem; }
-.ccc img { width: 72px; opacity: 0.7; }
+.role-guide article em {
+  color: #cba365;
+  font-size: 0.55rem;
+}
+.ccc {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0;
+  color: #746b76;
+  font-size: 0.55rem;
+}
+.ccc img {
+  width: 72px;
+  opacity: 0.7;
+}
 .night article {
   grid-template-columns: 28px 34px 1fr;
   align-items: start;
 }
-.night article > img { width: 30px; height: 30px; object-fit: contain; }
-.night article section { display: flex; flex-direction: column; }
-.night article section em { align-self: start; }
+.night article > img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+.night article section {
+  display: flex;
+  flex-direction: column;
+}
+.night article section em {
+  align-self: start;
+}
 .night article section p {
   direction: ltr;
   text-align: left;
@@ -820,4 +864,54 @@ nav .vote {
   line-height: 1.45;
   font-size: 0.58rem;
   margin: 5px 0 0;
+}
+.on-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #2a1a20;
+  border: 1px solid #713b47;
+  border-radius: 13px;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.on-block > svg {
+  width: 22px;
+  color: #d17887;
+}
+.on-block span,
+.on-block small,
+.on-block b {
+  display: block;
+}
+.on-block small {
+  color: #a9949a;
+  font-size: 0.55rem;
+}
+.on-block b {
+  font-size: 0.75rem;
+}
+.on-block.tie {
+  background: #24202b;
+  border-color: #55465e;
+}
+.end-day {
+  text-align: center;
+  padding: 15px 4px 5px;
+}
+.end-day > svg {
+  width: 45px;
+  height: 45px;
+  color: #cba365;
+}
+.end-day h3 {
+  margin: 8px 0 3px;
+}
+.end-day p {
+  color: #998f9b;
+  font-size: 0.7rem;
+}
+nav button:disabled {
+  opacity: 0.3;
+  pointer-events: none;
 }
