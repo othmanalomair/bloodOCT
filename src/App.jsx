@@ -1169,10 +1169,16 @@ function Night({
           effect.status === "drunk" ||
           /مسموم|سكران|poison|drunk/i.test(effect.marker || "")),
     );
-  const prepareStartingInfo = (role, source, keepTruth = false) => {
+  const prepareStartingInfo = (
+    role,
+    source,
+    keepTruth = false,
+    forceTruth = false,
+  ) => {
     const team = startingInfoTeams[role.id];
     const previous = nightInfo[role.id];
-    const misinformation = isMisinformed(source);
+    const sourceIsDisabled = isMisinformed(source);
+    const misinformation = sourceIsDisabled && !forceTruth;
     const previousTruth = players.find(
       (candidate) => candidate.id === previous?.truthId,
     );
@@ -1257,6 +1263,7 @@ function Night({
       decoyId: decoy?.id,
       shownRoleId: truth.role.id,
       misinformation: false,
+      overrideTruth: sourceIsDisabled && forceTruth,
     });
     setOpenInfo(role.id);
   };
@@ -1382,10 +1389,13 @@ function Night({
         const savedShownRole = roles.find(
           (candidate) => candidate.id === savedInfo?.shownRoleId,
         );
+        const savedModeMatchesStatus = playerIsMisinformed
+          ? Boolean(savedInfo?.misinformation || savedInfo?.overrideTruth)
+          : !savedInfo?.misinformation && !savedInfo?.overrideTruth;
         const infoIsCurrent = Boolean(
           savedInfo &&
             savedInfo.sourceId === player?.id &&
-            Boolean(savedInfo.misinformation) === playerIsMisinformed &&
+            savedModeMatchesStatus &&
             (savedInfo.misinformation
               ? savedShownRole?.team === startingInfoTeams[role.id] &&
                 !inPlayRoleIds.has(savedShownRole.id) &&
@@ -1531,6 +1541,33 @@ function Night({
                               <small>
                                 {player.name} مسموم أو سكران، لا تعرض الحقيقة.
                               </small>
+                              <button
+                                onClick={() =>
+                                  prepareStartingInfo(
+                                    role,
+                                    player,
+                                    false,
+                                    true,
+                                  )
+                                }
+                              >
+                                استخدم معلومة صحيحة بدلاً منها
+                              </button>
+                            </div>
+                          )}
+                          {preparedInfo.overrideTruth && (
+                            <div className="truth-override-warning">
+                              <b>معلومة صحيحة باختيار الراوي</b>
+                              <small>
+                                اللاعب معطّل، لكن القواعد تسمح أن تعطيه الحقيقة.
+                              </small>
+                              <button
+                                onClick={() =>
+                                  prepareStartingInfo(role, player)
+                                }
+                              >
+                                ارجع لمعلومة خاطئة
+                              </button>
                             </div>
                           )}
                           <header>
@@ -1563,7 +1600,12 @@ function Night({
                           <button
                             className="reroll-decoy"
                             onClick={() =>
-                              prepareStartingInfo(role, player, true)
+                              prepareStartingInfo(
+                                role,
+                                player,
+                                true,
+                                Boolean(preparedInfo.overrideTruth),
+                              )
                             }
                           >
                             {preparedInfo.misinformation

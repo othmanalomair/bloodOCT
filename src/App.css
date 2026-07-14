@@ -1250,6 +1250,41 @@ nav .vote {
   color: #ba929d;
   font-size: 0.5rem;
 }
+.false-info-warning button,
+.truth-override-warning button {
+  width: 100%;
+  margin-top: 7px;
+  padding: 6px;
+  border: 1px solid #a15d70;
+  border-radius: 7px;
+  background: transparent;
+  color: #efb1c0;
+  font-size: 0.5rem;
+}
+.truth-override-warning {
+  margin-bottom: 10px;
+  padding: 8px 9px;
+  border: 1px solid #557968;
+  border-radius: 9px;
+  background: #1d3029;
+}
+.truth-override-warning b,
+.truth-override-warning small {
+  display: block;
+}
+.truth-override-warning b {
+  color: #a8d7bd;
+  font-size: 0.63rem;
+}
+.truth-override-warning small {
+  margin-top: 2px;
+  color: #8eae9c;
+  font-size: 0.5rem;
+}
+.truth-override-warning button {
+  border-color: #557968;
+  color: #a8d7bd;
+}
 .starting-info-card > header {
   display: flex;
   align-items: center;
