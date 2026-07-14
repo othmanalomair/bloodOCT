@@ -51,9 +51,9 @@ const scripts = {
       ...mk("demon", "Imp"),
     ],
     first:
-      "Minion info|Demon info|Poisoner|Washerwoman|Librarian|Investigator|Chef|Empath|Fortune Teller|Butler|Spy",
+      "Minion info|Demon info|Poisoner|Spy|Washerwoman|Librarian|Investigator|Chef|Empath|Fortune Teller|Butler",
     other:
-      "Poisoner|Monk|Scarlet Woman|Imp|Ravenkeeper|Empath|Fortune Teller|Undertaker|Spy",
+      "Poisoner|Monk|Spy|Scarlet Woman|Imp|Ravenkeeper|Undertaker|Empath|Fortune Teller|Butler",
   },
   bmr: {
     name: "Bad Moon Rising",
