@@ -1195,6 +1195,27 @@ nav .vote {
   color: #cba365;
   font-size: 0.5rem;
 }
+.evil-intro {
+  margin-top: 8px;
+  padding: 8px 9px;
+  border-right: 2px solid #9a4f58;
+  border-radius: 7px;
+  background: #2a191f;
+}
+.evil-intro small,
+.evil-intro b {
+  display: block;
+}
+.evil-intro small {
+  color: #b39097;
+  font-size: 0.48rem;
+}
+.evil-intro b {
+  margin-top: 2px;
+  direction: rtl;
+  color: #e4cfd2;
+  font-size: 0.6rem;
+}
 .starting-info-card {
   margin-top: 7px;
   padding: 11px;
@@ -1203,6 +1224,31 @@ nav .vote {
   background:
     linear-gradient(135deg, #2b2227, #17131b), #17131b;
   box-shadow: inset 0 0 30px #cba3650a;
+}
+.starting-info-card.misinformation {
+  border-color: #934d62;
+  background:
+    linear-gradient(135deg, #321d27, #17131b), #17131b;
+}
+.false-info-warning {
+  margin-bottom: 10px;
+  padding: 8px 9px;
+  border: 1px solid #8c4559;
+  border-radius: 9px;
+  background: #3b202a;
+}
+.false-info-warning b,
+.false-info-warning small {
+  display: block;
+}
+.false-info-warning b {
+  color: #f0a2b5;
+  font-size: 0.63rem;
+}
+.false-info-warning small {
+  margin-top: 2px;
+  color: #ba929d;
+  font-size: 0.5rem;
 }
 .starting-info-card > header {
   display: flex;
@@ -1285,6 +1331,73 @@ nav .vote {
 .zero-info p {
   margin: 4px 0 0 !important;
   color: #9b909c !important;
+}
+.bluff-trigger {
+  border-color: #765841;
+  background: #2b211e;
+}
+.demon-bluff-card {
+  margin-top: 7px;
+  padding: 11px;
+  border: 1px solid #80513f;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 0, #5a2928 0, transparent 62%), #1b1419;
+}
+.demon-bluff-card > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.demon-bluff-card > header b {
+  color: #e0c183;
+  font-size: 0.68rem;
+}
+.demon-bluff-card > header small {
+  color: #9c8588;
+  font-size: 0.47rem;
+}
+.demon-bluff-card > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.demon-bluff-card > div span {
+  min-width: 0;
+  padding: 8px 4px;
+  border: 1px solid #553b3c;
+  border-radius: 10px;
+  background: #130f15;
+  text-align: center;
+}
+.demon-bluff-card img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 4px;
+  object-fit: contain;
+}
+.demon-bluff-card > div b {
+  display: block;
+  overflow: hidden;
+  direction: ltr;
+  color: #e1d3d5;
+  font-family: Georgia, serif;
+  font-size: 0.52rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.demon-bluff-card > button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px;
+  border: 1px solid #694a45;
+  border-radius: 9px;
+  background: transparent;
+  color: #d9b472;
+  font-size: 0.55rem;
 }
 .night-action {
   display: grid;

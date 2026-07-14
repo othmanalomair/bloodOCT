@@ -547,6 +547,7 @@ export default function App() {
             <Night
               order={(g.day === 1 ? s.first : s.other).split("|")}
               players={g.players}
+              roles={s.roles}
               first={g.day === 1}
               effects={g.effects || []}
               nightInfo={g.nightInfo || {}}
@@ -1082,10 +1083,20 @@ const nightSpecials = {
   },
 };
 const nightActions = {
-  poisoner: { label: "سمّم لاعباً", marker: "مسموم", tone: "poison" },
+  poisoner: {
+    label: "سمّم لاعباً",
+    marker: "مسموم",
+    tone: "poison",
+    status: "poisoned",
+  },
   monk: { label: "احمِ لاعباً", marker: "محمي", tone: "protect" },
   butler: { label: "اختر السيد", marker: "سيد Butler", tone: "info" },
-  sailor: { label: "سجّل الاختيار", marker: "اختيار Sailor", tone: "info" },
+  sailor: {
+    label: "حدّد اللاعب السكران",
+    marker: "سكران من Sailor",
+    tone: "poison",
+    status: "drunk",
+  },
   innkeeper: {
     label: "احمِ لاعباً",
     marker: "محمي من Innkeeper",
@@ -1101,7 +1112,12 @@ const nightActions = {
     marker: "اختيار Exorcist",
     tone: "info",
   },
-  pukka: { label: "سمّم لاعباً", marker: "مسموم من Pukka", tone: "poison" },
+  pukka: {
+    label: "سمّم لاعباً",
+    marker: "مسموم من Pukka",
+    tone: "poison",
+    status: "poisoned",
+  },
   witch: { label: "العن لاعباً", marker: "ملعون", tone: "danger" },
   cerenovus: {
     label: "اختر لاعباً",
@@ -1123,6 +1139,7 @@ const startingInfoTeams = {
 function Night({
   order,
   players,
+  roles,
   first,
   effects,
   nightInfo,
@@ -1135,14 +1152,80 @@ function Night({
   const [customMarker, setCustomMarker] = useState("");
   const [openInfo, setOpenInfo] = useState("");
   let inPlay = new Map(players.map((p) => [p.role.name, p]));
+  const inPlayRoleIds = new Set(players.map((player) => player.role.id));
+  const demonsInPlay = players.filter(
+    (player) => player.role.team === "demon",
+  );
+  const minionsInPlay = players.filter(
+    (player) => player.role.team === "minion",
+  );
   const randomFrom = (list) =>
     list.length ? list[Math.floor(Math.random() * list.length)] : null;
+  const isMisinformed = (source) =>
+    effects.some(
+      (effect) =>
+        effect.targetId === source.id &&
+        (effect.status === "poisoned" ||
+          effect.status === "drunk" ||
+          /مسموم|سكران|poison|drunk/i.test(effect.marker || "")),
+    );
   const prepareStartingInfo = (role, source, keepTruth = false) => {
     const team = startingInfoTeams[role.id];
     const previous = nightInfo[role.id];
+    const misinformation = isMisinformed(source);
     const previousTruth = players.find(
       (candidate) => candidate.id === previous?.truthId,
     );
+    if (misinformation) {
+      const previousShownRole = roles.find(
+        (candidate) => candidate.id === previous?.shownRoleId,
+      );
+      const shownRole =
+        keepTruth &&
+        previous?.misinformation &&
+        previousShownRole?.team === team &&
+        !inPlayRoleIds.has(previousShownRole.id)
+          ? previousShownRole
+          : randomFrom(
+              roles.filter(
+                (candidate) =>
+                  candidate.team === team &&
+                  !inPlayRoleIds.has(candidate.id),
+              ),
+            );
+      if (!shownRole) return;
+      const wrongPlayers = players.filter(
+        (candidate) =>
+          candidate.id !== source.id && candidate.role.id !== shownRole.id,
+      );
+      const firstWrong =
+        keepTruth &&
+        previous?.misinformation &&
+        previousTruth &&
+        wrongPlayers.some((candidate) => candidate.id === previousTruth.id)
+          ? previousTruth
+          : randomFrom(wrongPlayers);
+      const secondPool = wrongPlayers.filter(
+        (candidate) => candidate.id !== firstWrong?.id,
+      );
+      const freshSecondPool =
+        keepTruth && secondPool.length > 1
+          ? secondPool.filter(
+              (candidate) => candidate.id !== previous?.decoyId,
+            )
+          : secondPool;
+      const secondWrong = randomFrom(freshSecondPool);
+      if (!firstWrong || !secondWrong) return;
+      saveNightInfo(role.id, {
+        sourceId: source.id,
+        truthId: firstWrong.id,
+        decoyId: secondWrong.id,
+        shownRoleId: shownRole.id,
+        misinformation: true,
+      });
+      setOpenInfo(role.id);
+      return;
+    }
     const truth =
       keepTruth && previousTruth?.role.team === team
         ? previousTruth
@@ -1172,8 +1255,24 @@ function Night({
       sourceId: source.id,
       truthId: truth.id,
       decoyId: decoy?.id,
+      shownRoleId: truth.role.id,
+      misinformation: false,
     });
     setOpenInfo(role.id);
+  };
+  const prepareDemonBluffs = () => {
+    const bluffRoles = mix(
+      roles.filter(
+        (role) =>
+          ["townsfolk", "outsider"].includes(role.team) &&
+          !inPlayRoleIds.has(role.id),
+      ),
+    ).slice(0, 3);
+    if (bluffRoles.length !== 3) return;
+    saveNightInfo("demonBluffs", {
+      roleIds: bluffRoles.map((role) => role.id),
+    });
+    setOpenInfo("demonBluffs");
   };
   return (
     <div className="night">
@@ -1250,6 +1349,21 @@ function Night({
         const canPrepareInfo = Boolean(
           first && player && startingInfoTeams[role?.id],
         );
+        const canPrepareBluffs = Boolean(
+          first && specialActive && r === "Demon info",
+        );
+        const bluffRoles = (nightInfo.demonBluffs?.roleIds || [])
+          .map((roleId) => roles.find((candidate) => candidate.id === roleId))
+          .filter(Boolean);
+        const bluffsAreCurrent = Boolean(
+          canPrepareBluffs &&
+            bluffRoles.length === 3 &&
+            bluffRoles.every(
+              (bluff) =>
+                ["townsfolk", "outsider"].includes(bluff.team) &&
+                !inPlayRoleIds.has(bluff.id),
+            ),
+        );
         const savedInfo = canPrepareInfo && nightInfo[role.id];
         const savedTruth = players.find(
           (candidate) => candidate.id === savedInfo?.truthId,
@@ -1262,19 +1376,38 @@ function Night({
             candidate.id !== player?.id &&
             candidate.role.team === startingInfoTeams[role?.id],
         );
+        const playerIsMisinformed = Boolean(
+          canPrepareInfo && isMisinformed(player),
+        );
+        const savedShownRole = roles.find(
+          (candidate) => candidate.id === savedInfo?.shownRoleId,
+        );
         const infoIsCurrent = Boolean(
           savedInfo &&
             savedInfo.sourceId === player?.id &&
-            (savedInfo.zero
-              ? role.id === "librarian" && !hasEligibleTruth
-              : savedTruth?.role.team === startingInfoTeams[role.id] &&
+            Boolean(savedInfo.misinformation) === playerIsMisinformed &&
+            (savedInfo.misinformation
+              ? savedShownRole?.team === startingInfoTeams[role.id] &&
+                !inPlayRoleIds.has(savedShownRole.id) &&
+                savedTruth &&
                 savedDecoy &&
+                savedTruth.id !== player.id &&
                 savedDecoy.id !== player.id &&
-                savedDecoy.id !== savedTruth.id),
+                savedDecoy.id !== savedTruth.id
+              : savedInfo.zero
+                ? role.id === "librarian" && !hasEligibleTruth
+                : savedTruth?.role.team === startingInfoTeams[role.id] &&
+                  savedShownRole?.id === savedTruth.role.id &&
+                  savedDecoy &&
+                  savedDecoy.id !== player.id &&
+                  savedDecoy.id !== savedTruth.id),
         );
         const preparedInfo = infoIsCurrent ? savedInfo : null;
         const truth = infoIsCurrent ? savedTruth : null;
         const decoy = infoIsCurrent ? savedDecoy : null;
+        const shownRole = preparedInfo?.misinformation
+          ? savedShownRole
+          : truth?.role;
         return (
           <article key={r} className={player || specialActive ? "in" : ""}>
             <span>{i + 1}</span>
@@ -1298,6 +1431,70 @@ function Night({
                     (first ? role.firstNightReminder : role.otherNightReminder)}
                 </p>
               )}
+              {first && specialActive && r === "Minion info" && (
+                <div className="evil-intro">
+                  <small>أشر للأتباع إلى الشيطان</small>
+                  <b>
+                    {demonsInPlay
+                      .map((demon) => `${demon.name} — ${demon.role.name}`)
+                      .join("، ")}
+                  </b>
+                </div>
+              )}
+              {first && specialActive && r === "Demon info" && (
+                <div className="evil-intro">
+                  <small>أشر للشيطان إلى أتباعه</small>
+                  <b>
+                    {minionsInPlay
+                      .map((minion) => `${minion.name} — ${minion.role.name}`)
+                      .join("، ")}
+                  </b>
+                </div>
+              )}
+              {canPrepareBluffs && (
+                <>
+                  <button
+                    className="night-info-trigger bluff-trigger"
+                    onClick={() => {
+                      if (!bluffsAreCurrent) {
+                        prepareDemonBluffs();
+                      } else {
+                        setOpenInfo(
+                          openInfo === "demonBluffs" ? "" : "demonBluffs",
+                        );
+                      }
+                    }}
+                  >
+                    <span>
+                      {bluffsAreCurrent
+                        ? "افتح خيارات الشيطان"
+                        : "جهّز 3 خيارات للشيطان"}
+                    </span>
+                    <small>
+                      {bluffsAreCurrent ? "جاهزة" : "غير موزعة"}
+                    </small>
+                  </button>
+                  {openInfo === "demonBluffs" && bluffsAreCurrent && (
+                    <section className="demon-bluff-card">
+                      <header>
+                        <b>شخصيات الخدعة</b>
+                        <small>كلها طيبة وغير موجودة في اللعب</small>
+                      </header>
+                      <div>
+                        {bluffRoles.map((bluff) => (
+                          <span key={bluff.id}>
+                            <img src={bluff.icon} alt={bluff.name} />
+                            <b>{bluff.name}</b>
+                          </span>
+                        ))}
+                      </div>
+                      <button onClick={prepareDemonBluffs}>
+                        غيّر الخيارات الثلاثة
+                      </button>
+                    </section>
+                  )}
+                </>
+              )}
               {canPrepareInfo && (
                 <>
                   <button
@@ -1318,30 +1515,48 @@ function Night({
                     <small>{preparedInfo ? "جاهزة" : "اختيار تلقائي"}</small>
                   </button>
                   {openInfo === role.id && preparedInfo && (
-                    <section className="starting-info-card">
+                    <section
+                      className={`starting-info-card ${preparedInfo.misinformation ? "misinformation" : ""}`}
+                    >
                       {preparedInfo.zero ? (
                         <div className="zero-info">
                           <b>لا يوجد Outsider في هذه اللعبة</b>
                           <p>أعطِ إشارة الرقم صفر للـLibrarian.</p>
                         </div>
-                      ) : truth && decoy ? (
+                      ) : truth && decoy && shownRole ? (
                         <>
+                          {preparedInfo.misinformation && (
+                            <div className="false-info-warning">
+                              <b>معلومة خاطئة جاهزة</b>
+                              <small>
+                                {player.name} مسموم أو سكران، لا تعرض الحقيقة.
+                              </small>
+                            </div>
+                          )}
                           <header>
-                            <img src={truth.role.icon} alt={truth.role.name} />
+                            <img src={shownRole.icon} alt={shownRole.name} />
                             <div>
                               <small>الشخصية التي تعرضها</small>
-                              <b>{truth.role.name}</b>
+                              <b>{shownRole.name}</b>
                             </div>
                           </header>
                           <p>اعرض صورة الشخصية، ثم أشر إلى هذين اللاعبين:</p>
                           <div className="info-pair">
                             <span>
-                              <small>الحقيقي</small>
+                              <small>
+                                {preparedInfo.misinformation
+                                  ? "اسم خاطئ ١"
+                                  : "الحقيقي"}
+                              </small>
                               <b>{truth.name}</b>
                             </span>
                             <i>أو</i>
                             <span>
-                              <small>تمويه</small>
+                              <small>
+                                {preparedInfo.misinformation
+                                  ? "اسم خاطئ ٢"
+                                  : "تمويه"}
+                              </small>
                               <b>{decoy.name}</b>
                             </span>
                           </div>
@@ -1351,7 +1566,9 @@ function Night({
                               prepareStartingInfo(role, player, true)
                             }
                           >
-                            غيّر اسم التمويه
+                            {preparedInfo.misinformation
+                              ? "غيّر الاسم الثاني"
+                              : "غيّر اسم التمويه"}
                           </button>
                         </>
                       ) : (
@@ -1395,6 +1612,7 @@ function Night({
                         targetName: target.name,
                         marker: action.marker,
                         tone: action.tone,
+                        status: action.status,
                       });
                       setTargets({ ...targets, [role.id]: "" });
                     }}
