@@ -1603,26 +1603,30 @@ nav .vote {
   display: grid;
   gap: 8px;
 }
-.role-guide article {
+.guide-role-card {
+  position: relative;
   display: grid;
   grid-template-columns: 52px 1fr;
   gap: 11px;
+  width: 100%;
   background: #19141f;
   border: 1px solid #352c3c;
   border-right: 3px solid #477890;
   border-radius: 14px;
   padding: 11px;
+  color: inherit;
+  text-align: right;
 }
-.role-guide article.outsider {
+.guide-role-card.outsider {
   border-right-color: #78889c;
 }
-.role-guide article.minion {
+.guide-role-card.minion {
   border-right-color: #9a60a0;
 }
-.role-guide article.demon {
+.guide-role-card.demon {
   border-right-color: #c75358;
 }
-.role-guide article > i {
+.guide-role-card > i {
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -1630,24 +1634,24 @@ nav .vote {
   display: grid;
   place-items: center;
 }
-.role-guide article img {
+.guide-role-card img {
   width: 74%;
   height: 74%;
   object-fit: contain;
 }
-.role-guide article header {
+.guide-role-card header {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
-.role-guide article header b {
+.guide-role-card header b {
   direction: ltr;
 }
-.role-guide article header span {
+.guide-role-card header span {
   color: #887f8a;
   font-size: 0.55rem;
 }
-.role-guide article p {
+.guide-role-card p {
   color: #b1a7b1;
   font-size: 0.66rem;
   line-height: 1.55;
@@ -1655,9 +1659,99 @@ nav .vote {
   text-align: right;
   margin: 5px 0 0;
 }
-.role-guide article em {
+.guide-role-card em {
   color: #cba365;
   font-size: 0.55rem;
+}
+.guide-role-eye {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  width: 15px;
+  color: #786b7c;
+}
+.guide-role-card:active {
+  border-color: #a98855;
+  background: #211923;
+}
+.character-reveal {
+  position: fixed;
+  z-index: 150;
+  inset: 0;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: max(28px, env(safe-area-inset-top)) 20px
+    max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 46%, #315d72 0, transparent 38%),
+    #100d15;
+  color: #f4eadc;
+  animation: reveal-in 0.22s ease-out;
+}
+.character-reveal.outsider {
+  background:
+    radial-gradient(circle at 50% 46%, #384d64 0, transparent 38%),
+    #100d15;
+}
+.character-reveal.minion {
+  background:
+    radial-gradient(circle at 50% 46%, #57395d 0, transparent 38%),
+    #100d15;
+}
+.character-reveal.demon {
+  background:
+    radial-gradient(circle at 50% 46%, #682e36 0, transparent 38%),
+    #100d15;
+}
+.character-reveal > div {
+  width: min(100%, 680px);
+  min-height: calc(100dvh - 70px);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.character-reveal > div > span {
+  margin-bottom: 13px;
+  color: #cbaa6e;
+  font-size: clamp(0.72rem, 3vw, 0.95rem);
+}
+.character-reveal > div > i {
+  display: grid;
+  width: clamp(210px, 64vw, 360px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 3px solid #e3d5c3;
+  border-radius: 50%;
+  background: #426e84;
+  box-shadow:
+    0 0 0 9px #100d15,
+    0 0 0 11px #c09f66,
+    0 28px 70px #000b;
+}
+.character-reveal.outsider > div > i {
+  background: #31556e;
+}
+.character-reveal.minion > div > i {
+  background: #714675;
+}
+.character-reveal.demon > div > i {
+  background: #923e42;
+}
+.character-reveal > div > i img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+.character-reveal h1 {
+  margin: 34px 0 0;
+  direction: ltr;
+  font-family: Georgia, serif;
+  font-size: clamp(2.5rem, 11vw, 5rem);
+  line-height: 1.05;
+  text-shadow: 0 5px 18px #000a;
 }
 .ccc {
   display: flex;

@@ -1272,6 +1272,7 @@ const teamNames = {
 function Guide({ roles, script, history = [], openLog, publicView = false }) {
   const [filter, setFilter] = useState("all");
   const [copied, setCopied] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
   const shareGuide = async () => {
     const url = `${window.location.origin}/guide`;
     if (navigator.share) {
@@ -1328,7 +1329,12 @@ function Guide({ roles, script, history = [], openLog, publicView = false }) {
       </div>
       <div className="role-guide">
         {visible.map((role) => (
-          <article key={role.id} className={role.team}>
+          <button
+            key={role.id}
+            className={`guide-role-card ${role.team}`}
+            onClick={() => setSelectedRole(role)}
+            aria-label={`اعرض ${role.name} بحجم كبير`}
+          >
             <i>
               <img src={role.icon} alt="" />
             </i>
@@ -1340,14 +1346,38 @@ function Guide({ roles, script, history = [], openLog, publicView = false }) {
               <p>{abilitiesAr[role.id] || role.ability}</p>
               {role.setup && <em>هذه الشخصية تغيّر إعداد اللعبة.</em>}
             </section>
-          </article>
+            <Eye className="guide-role-eye" />
+          </button>
         ))}
       </div>
       <footer className="ccc">
         <img src="/ccc-sleeve.png" alt="Community Created Content" />
         <span>أداة مجتمعية غير رسمية</span>
       </footer>
+      {selectedRole && (
+        <CharacterReveal
+          role={selectedRole}
+          close={() => setSelectedRole(null)}
+        />
+      )}
     </div>
+  );
+}
+function CharacterReveal({ role, close }) {
+  return createPortal(
+    <section className={`character-reveal ${role.team}`} dir="rtl">
+      <button className="reveal-close" onClick={close} aria-label="إغلاق">
+        <X />
+      </button>
+      <div>
+        <span>شخصية</span>
+        <i>
+          <img src={role.icon} alt={role.name} />
+        </i>
+        <h1>{role.name}</h1>
+      </div>
+    </section>,
+    document.body,
   );
 }
 function PublicGuide() {
