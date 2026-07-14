@@ -111,6 +111,7 @@ const dist = {
     phase: "night",
     history: [],
     effects: [],
+    nightInfo: {},
     savedSeats: {},
     locked: false,
     layout: "circle",
@@ -192,6 +193,7 @@ export default function App() {
       phase: "night",
       history: [],
       effects: [],
+      nightInfo: {},
       locked: Boolean(g.savedSeats && Object.keys(g.savedSeats).length),
       layout: g.layout || "circle",
     });
@@ -261,6 +263,12 @@ export default function App() {
     setG((current) => ({
       ...current,
       effects: (current.effects || []).filter((effect) => effect.id !== id),
+    }));
+  }
+  function saveNightInfo(roleId, info) {
+    setG((current) => ({
+      ...current,
+      nightInfo: { ...(current.nightInfo || {}), [roleId]: info },
     }));
   }
   return (
@@ -541,8 +549,10 @@ export default function App() {
               players={g.players}
               first={g.day === 1}
               effects={g.effects || []}
+              nightInfo={g.nightInfo || {}}
               addEffect={addEffect}
               removeEffect={removeEffect}
+              saveNightInfo={saveNightInfo}
             />
           ) : sheet === "endday" ? (
             <div className="end-day">
@@ -1105,18 +1115,66 @@ const nightActions = {
     tone: "info",
   },
 };
+const startingInfoTeams = {
+  washerwoman: "townsfolk",
+  librarian: "outsider",
+  investigator: "minion",
+};
 function Night({
   order,
   players,
   first,
   effects,
+  nightInfo,
   addEffect,
   removeEffect,
+  saveNightInfo,
 }) {
   const [targets, setTargets] = useState({});
   const [customTarget, setCustomTarget] = useState("");
   const [customMarker, setCustomMarker] = useState("");
+  const [openInfo, setOpenInfo] = useState("");
   let inPlay = new Map(players.map((p) => [p.role.name, p]));
+  const randomFrom = (list) =>
+    list.length ? list[Math.floor(Math.random() * list.length)] : null;
+  const prepareStartingInfo = (role, source, keepTruth = false) => {
+    const team = startingInfoTeams[role.id];
+    const previous = nightInfo[role.id];
+    const previousTruth = players.find(
+      (candidate) => candidate.id === previous?.truthId,
+    );
+    const truth =
+      keepTruth && previousTruth?.role.team === team
+        ? previousTruth
+        : randomFrom(
+            players.filter(
+              (candidate) =>
+                candidate.id !== source.id && candidate.role.team === team,
+            ),
+          );
+    if (!truth) {
+      saveNightInfo(role.id, { sourceId: source.id, zero: true });
+      setOpenInfo(role.id);
+      return;
+    }
+    const decoyPool = players.filter(
+      (candidate) =>
+        candidate.id !== source.id && candidate.id !== truth.id,
+    );
+    const freshDecoyPool =
+      keepTruth && decoyPool.length > 1
+        ? decoyPool.filter(
+            (candidate) => candidate.id !== previous?.decoyId,
+          )
+        : decoyPool;
+    const decoy = randomFrom(freshDecoyPool);
+    saveNightInfo(role.id, {
+      sourceId: source.id,
+      truthId: truth.id,
+      decoyId: decoy?.id,
+    });
+    setOpenInfo(role.id);
+  };
   return (
     <div className="night">
       {effects.length > 0 && (
@@ -1189,6 +1247,34 @@ function Night({
         const specialActive = Boolean(special && players.length >= 7);
         const role = player?.role || officialByName.get(r);
         const action = player && nightActions[role?.id];
+        const canPrepareInfo = Boolean(
+          first && player && startingInfoTeams[role?.id],
+        );
+        const savedInfo = canPrepareInfo && nightInfo[role.id];
+        const savedTruth = players.find(
+          (candidate) => candidate.id === savedInfo?.truthId,
+        );
+        const savedDecoy = players.find(
+          (candidate) => candidate.id === savedInfo?.decoyId,
+        );
+        const hasEligibleTruth = players.some(
+          (candidate) =>
+            candidate.id !== player?.id &&
+            candidate.role.team === startingInfoTeams[role?.id],
+        );
+        const infoIsCurrent = Boolean(
+          savedInfo &&
+            savedInfo.sourceId === player?.id &&
+            (savedInfo.zero
+              ? role.id === "librarian" && !hasEligibleTruth
+              : savedTruth?.role.team === startingInfoTeams[role.id] &&
+                savedDecoy &&
+                savedDecoy.id !== player.id &&
+                savedDecoy.id !== savedTruth.id),
+        );
+        const preparedInfo = infoIsCurrent ? savedInfo : null;
+        const truth = infoIsCurrent ? savedTruth : null;
+        const decoy = infoIsCurrent ? savedDecoy : null;
         return (
           <article key={r} className={player || specialActive ? "in" : ""}>
             <span>{i + 1}</span>
@@ -1211,6 +1297,69 @@ function Night({
                     abilitiesAr[role.id] ||
                     (first ? role.firstNightReminder : role.otherNightReminder)}
                 </p>
+              )}
+              {canPrepareInfo && (
+                <>
+                  <button
+                    className="night-info-trigger"
+                    onClick={() => {
+                      if (!preparedInfo) {
+                        prepareStartingInfo(role, player);
+                      } else {
+                        setOpenInfo(openInfo === role.id ? "" : role.id);
+                      }
+                    }}
+                  >
+                    <span>
+                      {preparedInfo
+                        ? "افتح معلومة البداية"
+                        : "جهّز معلومة البداية"}
+                    </span>
+                    <small>{preparedInfo ? "جاهزة" : "اختيار تلقائي"}</small>
+                  </button>
+                  {openInfo === role.id && preparedInfo && (
+                    <section className="starting-info-card">
+                      {preparedInfo.zero ? (
+                        <div className="zero-info">
+                          <b>لا يوجد Outsider في هذه اللعبة</b>
+                          <p>أعطِ إشارة الرقم صفر للـLibrarian.</p>
+                        </div>
+                      ) : truth && decoy ? (
+                        <>
+                          <header>
+                            <img src={truth.role.icon} alt={truth.role.name} />
+                            <div>
+                              <small>الشخصية التي تعرضها</small>
+                              <b>{truth.role.name}</b>
+                            </div>
+                          </header>
+                          <p>اعرض صورة الشخصية، ثم أشر إلى هذين اللاعبين:</p>
+                          <div className="info-pair">
+                            <span>
+                              <small>الحقيقي</small>
+                              <b>{truth.name}</b>
+                            </span>
+                            <i>أو</i>
+                            <span>
+                              <small>تمويه</small>
+                              <b>{decoy.name}</b>
+                            </span>
+                          </div>
+                          <button
+                            className="reroll-decoy"
+                            onClick={() =>
+                              prepareStartingInfo(role, player, true)
+                            }
+                          >
+                            غيّر اسم التمويه
+                          </button>
+                        </>
+                      ) : (
+                        <p>تعذّر تجهيز المعلومة. جرّب مرة ثانية.</p>
+                      )}
+                    </section>
+                  )}
+                </>
               )}
               {action && (
                 <div className="night-action">
