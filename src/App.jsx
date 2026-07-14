@@ -867,6 +867,67 @@ function RoleReveal({ player, close }) {
     </section>
   );
 }
+function InformationReveal({ presentation, close }) {
+  return (
+    <section className={`information-reveal ${presentation.type}`} dir="rtl">
+      <button className="reveal-close" onClick={close} aria-label="إغلاق">
+        <X />
+      </button>
+      <div className="information-reveal-content">
+        {presentation.type === "pair" ? (
+          <>
+            <span className="information-eyebrow">معلومة من الراوي</span>
+            <h1>واحد من هذين اللاعبين هو</h1>
+            <div className="information-role-token">
+              <img src={presentation.role.icon} alt={presentation.role.name} />
+            </div>
+            <h2>{presentation.role.name}</h2>
+            <div className="information-names">
+              {presentation.names.map((name) => (
+                <b key={name}>{name}</b>
+              ))}
+            </div>
+          </>
+        ) : presentation.type === "bluffs" ? (
+          <>
+            <span className="information-eyebrow">معلومة الشيطان</span>
+            <h1>شخصياتك المتاحة</h1>
+            <p className="information-lead">هذه الشخصيات ليست في اللعب</p>
+            <div className="information-role-grid">
+              {presentation.roles.map((role) => (
+                <article key={role.id}>
+                  <i>
+                    <img src={role.icon} alt={role.name} />
+                  </i>
+                  <b>{role.name}</b>
+                </article>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="information-eyebrow">معلومات فريق الشر</span>
+            <h1>{presentation.heading}</h1>
+            <div className="information-team-grid">
+              {presentation.players.map((player) => (
+                <article key={player.id} className={player.role.team}>
+                  <i>
+                    <img src={player.role.icon} alt={player.role.name} />
+                  </i>
+                  <span>
+                    <b>{player.name}</b>
+                    <small>{player.role.name}</small>
+                  </span>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+        <p className="information-return">أعد الجهاز إلى الراوي بعد القراءة</p>
+      </div>
+    </section>
+  );
+}
 const teamNames = {
   townsfolk: "أهل البلدة",
   outsider: "الغرباء",
@@ -1151,6 +1212,7 @@ function Night({
   const [customTarget, setCustomTarget] = useState("");
   const [customMarker, setCustomMarker] = useState("");
   const [openInfo, setOpenInfo] = useState("");
+  const [presentation, setPresentation] = useState(null);
   let inPlay = new Map(players.map((p) => [p.role.name, p]));
   const inPlayRoleIds = new Set(players.map((player) => player.role.id));
   const demonsInPlay = players.filter(
@@ -1282,7 +1344,8 @@ function Night({
     setOpenInfo("demonBluffs");
   };
   return (
-    <div className="night">
+    <>
+      <div className="night">
       {effects.length > 0 && (
         <section className="night-reminders">
           <header>
@@ -1449,6 +1512,17 @@ function Night({
                       .map((demon) => `${demon.name} — ${demon.role.name}`)
                       .join("، ")}
                   </b>
+                  <button
+                    onClick={() =>
+                      setPresentation({
+                        type: "team",
+                        heading: "هذا هو الشيطان",
+                        players: demonsInPlay,
+                      })
+                    }
+                  >
+                    <Eye /> اعرض للأتباع
+                  </button>
                 </div>
               )}
               {first && specialActive && r === "Demon info" && (
@@ -1459,6 +1533,17 @@ function Night({
                       .map((minion) => `${minion.name} — ${minion.role.name}`)
                       .join("، ")}
                   </b>
+                  <button
+                    onClick={() =>
+                      setPresentation({
+                        type: "team",
+                        heading: "هؤلاء أتباعك",
+                        players: minionsInPlay,
+                      })
+                    }
+                  >
+                    <Eye /> اعرض للشيطان
+                  </button>
                 </div>
               )}
               {canPrepareBluffs && (
@@ -1498,6 +1583,17 @@ function Night({
                           </span>
                         ))}
                       </div>
+                      <button
+                        className="show-player-info"
+                        onClick={() =>
+                          setPresentation({
+                            type: "bluffs",
+                            roles: bluffRoles,
+                          })
+                        }
+                      >
+                        <Eye /> اعرض الخيارات للشيطان
+                      </button>
                       <button onClick={prepareDemonBluffs}>
                         غيّر الخيارات الثلاثة
                       </button>
@@ -1598,6 +1694,18 @@ function Night({
                             </span>
                           </div>
                           <button
+                            className="show-player-info"
+                            onClick={() =>
+                              setPresentation({
+                                type: "pair",
+                                role: shownRole,
+                                names: [truth.name, decoy.name],
+                              })
+                            }
+                          >
+                            <Eye /> اعرض المعلومة للاعب
+                          </button>
+                          <button
                             className="reroll-decoy"
                             onClick={() =>
                               prepareStartingInfo(
@@ -1668,6 +1776,13 @@ function Night({
         );
       })}
       <p>الأدوار المضيئة موجودة في هذه اللعبة.</p>
-    </div>
+      </div>
+      {presentation && (
+        <InformationReveal
+          presentation={presentation}
+          close={() => setPresentation(null)}
+        />
+      )}
+    </>
   );
 }
