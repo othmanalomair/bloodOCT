@@ -1365,16 +1365,20 @@ function Guide({ roles, script, history = [], openLog, publicView = false }) {
 }
 function CharacterReveal({ role, close }) {
   return createPortal(
-    <section className={`character-reveal ${role.team}`} dir="rtl">
+    <section className={`role-reveal guide-role-reveal ${role.team}`} dir="rtl">
       <button className="reveal-close" onClick={close} aria-label="إغلاق">
         <X />
       </button>
-      <div>
-        <span>شخصية</span>
-        <i>
+      <div className="reveal-content">
+        <div className="reveal-token">
           <img src={role.icon} alt={role.name} />
-        </i>
-        <h1>{role.name}</h1>
+        </div>
+        <span className="reveal-team">{teamNames[role.team]}</span>
+        <h2>{role.name}</h2>
+        <div className="reveal-rule">
+          <BookOpen />
+          <p>{abilitiesAr[role.id] || role.ability}</p>
+        </div>
       </div>
     </section>,
     document.body,
