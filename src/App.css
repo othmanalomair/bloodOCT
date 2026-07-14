@@ -296,6 +296,80 @@ h2 {
   font-size: 0.64rem;
   margin: 24px 0;
 }
+.effect-tray {
+  width: min(90vw, 600px);
+  margin: 0 auto 14px;
+  padding: 10px;
+  border: 1px solid #5f465d;
+  border-radius: 14px;
+  background: #1d1622;
+  box-shadow: 0 10px 28px #0004;
+}
+.effect-tray > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-size: 0.68rem;
+}
+.effect-tray > header span {
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #cba365;
+  color: #171119;
+  text-align: center;
+  font-size: 0.58rem;
+}
+.effect-tray > div {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.effect-tray button {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 7px;
+  min-width: 132px;
+  padding: 7px 9px;
+  border: 1px solid #655269;
+  border-radius: 10px;
+  background: #261e2c;
+  text-align: right;
+}
+.effect-tray button > span,
+.effect-tray button > b,
+.effect-tray button > small {
+  grid-column: 1;
+}
+.effect-tray button > span {
+  color: #d6b86f;
+  font-size: 0.54rem;
+}
+.effect-tray button > b {
+  font-size: 0.7rem;
+}
+.effect-tray button > small {
+  color: #8f8491;
+  direction: ltr;
+  font-size: 0.48rem;
+}
+.effect-tray button > svg {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+  width: 14px;
+  color: #8f8491;
+}
+.effect-tray button.poison,
+.effect-tray button.danger {
+  border-color: #7a3f51;
+}
+.effect-tray button.protect {
+  border-color: #3f6b61;
+}
 .token.placed {
   transform: translate(-50%, -50%);
   touch-action: none;
@@ -395,6 +469,34 @@ h2 {
   white-space: nowrap;
   text-overflow: ellipsis;
   box-shadow: 0 2px 7px #0008;
+}
+.token-effect {
+  display: block;
+  width: max-content;
+  max-width: 120%;
+  margin: 3px auto 0;
+  padding: 2px 5px;
+  overflow: hidden;
+  border: 1px solid #876b8b;
+  border-radius: 5px;
+  background: #2e2233;
+  color: #e6d8e8;
+  box-shadow: 0 2px 7px #0008;
+  font-size: clamp(0.4rem, 1.65vw, 0.53rem);
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.token-effect.poison,
+.token-effect.danger {
+  border-color: #9a5064;
+  background: #3b202b;
+  color: #f0a9b8;
+}
+.token-effect.protect {
+  border-color: #4d8275;
+  background: #1d332e;
+  color: #9ed4c6;
 }
 .token > b {
   font-size: clamp(0.52rem, 2.4vw, 0.72rem);
@@ -668,17 +770,27 @@ nav .vote {
   width: 13px;
 }
 .log article {
-  display: grid;
-  grid-template-columns: 70px 1fr auto;
   background: #1a1520;
   border-bottom: 1px solid #382e3f;
-  padding: 14px;
   font-size: 0.72rem;
 }
-.log article span {
+.log-summary {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  text-align: right;
+}
+.log article.open {
+  background: #211925;
+}
+.log-summary span {
   color: #837986;
 }
-.log em {
+.log-summary em {
   color: #bd7180;
 }
 .log .pass,
@@ -689,6 +801,33 @@ nav .vote {
   text-align: center;
   color: #807683;
   margin-top: 80px;
+}
+.vote-details {
+  padding: 0 14px 14px;
+  border-top: 1px solid #342a3a;
+}
+.vote-details > small {
+  display: block;
+  margin: 10px 0 7px;
+  color: #a89daa;
+}
+.vote-details > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.vote-details > div span {
+  padding: 4px 9px;
+  border: 1px solid #57465c;
+  border-radius: 99px;
+  background: #2b222f;
+  color: #e4d9e5;
+  font-size: 0.62rem;
+}
+.vote-details p {
+  margin: 0;
+  color: #857b88;
+  font-size: 0.62rem;
 }
 .back {
   position: fixed;
@@ -1032,6 +1171,134 @@ nav .vote {
   line-height: 1.45;
   font-size: 0.58rem;
   margin: 5px 0 0;
+}
+.night-action {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-top: 9px;
+}
+.night-action select {
+  min-width: 0;
+  border: 1px solid #514258;
+  border-radius: 9px;
+  background: #120f17;
+  padding: 7px 9px;
+  color: #ddd1df;
+  font-size: 0.62rem;
+}
+.night-action button {
+  min-width: 54px;
+  border: 1px solid #cba365;
+  border-radius: 9px;
+  background: #cba365;
+  color: #171119;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+.night-action button:disabled {
+  border-color: #413647;
+  background: #2c2531;
+  color: #716875;
+}
+.night-reminders {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #604a62;
+  border-radius: 13px;
+  background: #231a27;
+}
+.night-reminders > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+}
+.night-reminders > header b {
+  font-size: 0.72rem;
+}
+.night-reminders > header small {
+  color: #8f8491;
+  font-size: 0.5rem;
+}
+.night-reminders > button {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid #392e3e;
+  background: transparent;
+  text-align: right;
+}
+.night-reminders > button span {
+  color: #cba365;
+  font-family: inherit;
+  font-size: 0.58rem;
+}
+.night-reminders > button b {
+  font-size: 0.65rem;
+}
+.night-reminders > button small {
+  color: #8e8390;
+  direction: ltr;
+  font-size: 0.5rem;
+}
+.night-reminders > button svg {
+  width: 14px;
+  color: #9b7882;
+}
+.custom-reminder {
+  margin-bottom: 10px;
+  border: 1px dashed #514258;
+  border-radius: 11px;
+  background: #17121d;
+}
+.custom-reminder summary {
+  padding: 10px;
+  color: #cba365;
+  cursor: pointer;
+  font-size: 0.64rem;
+}
+.custom-reminder > div {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr auto;
+  gap: 6px;
+  padding: 0 9px 9px;
+}
+.custom-reminder select,
+.custom-reminder input {
+  min-width: 0;
+  border: 1px solid #473a4e;
+  border-radius: 9px;
+  background: #100d15;
+  padding: 7px 8px;
+  font-size: 0.6rem;
+}
+.custom-reminder button {
+  border: 1px solid #cba365;
+  border-radius: 9px;
+  background: #cba365;
+  color: #171119;
+  padding: 0 12px;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+.custom-reminder button:disabled {
+  border-color: #413647;
+  background: #2c2531;
+  color: #716875;
+}
+@media (max-width: 430px) {
+  .custom-reminder > div {
+    grid-template-columns: 1fr auto;
+  }
+  .custom-reminder input {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
 }
 .on-block {
   display: flex;

@@ -110,6 +110,8 @@ const dist = {
     day: 1,
     phase: "night",
     history: [],
+    effects: [],
+    savedSeats: {},
     locked: false,
     layout: "circle",
   };
@@ -120,6 +122,7 @@ export default function App() {
         if (!saved) return base;
         const currentRoles = scripts[saved.script]?.roles || [];
         return {
+          ...base,
           ...saved,
           players: (saved.players || []).map((player) => ({
             ...player,
@@ -183,12 +186,14 @@ export default function App() {
         alive: true,
         ghost: true,
         note: "",
+        pos: g.savedSeats?.[name],
       })),
       day: 1,
       phase: "night",
       history: [],
-      locked: false,
-      layout: "circle",
+      effects: [],
+      locked: Boolean(g.savedSeats && Object.keys(g.savedSeats).length),
+      layout: g.layout || "circle",
     });
   }
   const patch = (id, x) =>
@@ -217,6 +222,10 @@ export default function App() {
           nominatorId: source.id,
           votes: voters.length,
           need,
+          voterIds: [...voters],
+          voterNames: g.players
+            .filter((player) => voters.includes(player.id))
+            .map((player) => player.name),
         },
         ...g.history,
       ],
@@ -239,6 +248,21 @@ export default function App() {
     }));
     setSheet("");
   }
+  function addEffect(effect) {
+    setG((current) => ({
+      ...current,
+      effects: [
+        ...(current.effects || []),
+        { ...effect, id: crypto.randomUUID(), day: current.day },
+      ],
+    }));
+  }
+  function removeEffect(id) {
+    setG((current) => ({
+      ...current,
+      effects: (current.effects || []).filter((effect) => effect.id !== id),
+    }));
+  }
   return (
     <main dir="rtl">
       <div className="grain" />
@@ -258,6 +282,7 @@ export default function App() {
             <div className="scripts">
               {Object.entries(scripts).map(([id, x]) => (
                 <button
+                  key={id}
                   className={g.script === id ? "on" : ""}
                   onClick={() => setG({ ...g, script: id })}
                 >
@@ -283,7 +308,7 @@ export default function App() {
             </div>
             <div className="chips">
               {g.names.map((n, i) => (
-                <span>
+                <span key={n}>
                   {i + 1}. {n}
                   <X
                     onClick={() =>
@@ -334,6 +359,8 @@ export default function App() {
                 phase={g.phase}
                 locked={Boolean(g.locked)}
                 layout={g.layout || "circle"}
+                effects={g.effects || []}
+                removeEffect={removeEffect}
                 setRoom={(change) =>
                   setG((current) => ({ ...current, ...change }))
                 }
@@ -481,6 +508,7 @@ export default function App() {
               <div className="voters">
                 {g.players.map((p) => (
                   <button
+                    key={p.id}
                     disabled={!p.alive && !p.ghost}
                     className={voters.includes(p.id) ? "on" : ""}
                     onClick={() =>
@@ -512,6 +540,9 @@ export default function App() {
               order={(g.day === 1 ? s.first : s.other).split("|")}
               players={g.players}
               first={g.day === 1}
+              effects={g.effects || []}
+              addEffect={addEffect}
+              removeEffect={removeEffect}
             />
           ) : sheet === "endday" ? (
             <div className="end-day">
@@ -541,7 +572,18 @@ export default function App() {
               <p>ماذا تريد أن تفعل بأسماء اللاعبين؟</p>
               <button
                 onClick={() => {
-                  setG({ ...base, script: g.script, names: g.names });
+                  const savedSeats = Object.fromEntries(
+                    g.players
+                      .filter((player) => player.pos)
+                      .map((player) => [player.name, player.pos]),
+                  );
+                  setG({
+                    ...base,
+                    script: g.script,
+                    names: g.names,
+                    savedSeats,
+                    layout: g.layout || "circle",
+                  });
                   setSheet("");
                 }}
               >
@@ -567,7 +609,16 @@ export default function App() {
     </main>
   );
 }
-function Circle({ players, patch, phase, locked, layout, setRoom }) {
+function Circle({
+  players,
+  patch,
+  phase,
+  locked,
+  layout,
+  effects,
+  removeEffect,
+  setRoom,
+}) {
   const board = useRef(null);
   const drag = useRef(null);
   const positionFor = (kind, index, count) => {
@@ -631,6 +682,29 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
   };
   return (
     <>
+      {effects.length > 0 && (
+        <section className="effect-tray">
+          <header>
+            <b>تذكيرات الراوي</b>
+            <span>{effects.length}</span>
+          </header>
+          <div>
+            {effects.map((effect) => (
+              <button
+                key={effect.id}
+                className={effect.tone}
+                onClick={() => removeEffect(effect.id)}
+                aria-label={`إزالة ${effect.marker} عن ${effect.targetName}`}
+              >
+                <span>{effect.marker}</span>
+                <b>{effect.targetName}</b>
+                <small>{effect.sourceRole}</small>
+                <X />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="layout-tools">
         <div>
           <button
@@ -665,6 +739,9 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
         </div>
         {players.map((p, i) => {
           const pos = p.pos || positionFor(layout, i, players.length);
+          const playerEffects = effects.filter(
+            (effect) => effect.targetId === p.id,
+          );
           return (
             <button
               key={p.id}
@@ -684,6 +761,14 @@ function Circle({ players, patch, phase, locked, layout, setRoom }) {
               <b>{p.name}</b>
               <small>{p.role.name}</small>
               {p.note?.trim() && <span className="token-note">{p.note}</span>}
+              {playerEffects.map((effect) => (
+                <span
+                  key={effect.id}
+                  className={`token-effect ${effect.tone}`}
+                >
+                  {effect.marker}
+                </span>
+              ))}
             </button>
           );
         })}
@@ -915,17 +1000,42 @@ function PublicGuide() {
   );
 }
 function Log({ rows }) {
+  const [expanded, setExpanded] = useState("");
   return (
     <div className="log">
       <h2>سجل الترشيحات</h2>
       {rows.length ? (
         rows.map((r) => (
-          <article key={r.id}>
-            <span>اليوم {r.day}</span>
-            <b>{r.nominator ? `${r.nominator} ← ${r.name}` : r.name}</b>
-            <em className={r.votes >= r.need ? "pass" : ""}>
-              {r.votes} / {r.need}
-            </em>
+          <article key={r.id} className={expanded === r.id ? "open" : ""}>
+            <button
+              className="log-summary"
+              onClick={() => setExpanded(expanded === r.id ? "" : r.id)}
+              aria-expanded={expanded === r.id}
+            >
+              <span>اليوم {r.day}</span>
+              <b>{r.nominator ? `${r.nominator} ← ${r.name}` : r.name}</b>
+              <em className={r.votes >= r.need ? "pass" : ""}>
+                {r.votes} / {r.need}
+              </em>
+            </button>
+            {expanded === r.id && (
+              <section className="vote-details">
+                <small>صوّتوا مع الترشيح</small>
+                {r.voterNames ? (
+                  r.voterNames.length ? (
+                    <div>
+                      {r.voterNames.map((name) => (
+                        <span key={name}>{name}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>لم يصوّت أحد مع هذا الترشيح.</p>
+                  )
+                ) : (
+                  <p>تفاصيل المصوّتين غير محفوظة لهذا التصويت القديم.</p>
+                )}
+              </section>
+            )}
           </article>
         ))
       ) : (
@@ -961,15 +1071,124 @@ const nightSpecials = {
       "إذا كان عدد اللاعبين 7 أو أكثر: عرّف الشيطان على أتباعه، ثم اعرض عليه 3 شخصيات طيبة غير موجودة في اللعب لاستخدامها كخدعة.",
   },
 };
-function Night({ order, players, first }) {
+const nightActions = {
+  poisoner: { label: "سمّم لاعباً", marker: "مسموم", tone: "poison" },
+  monk: { label: "احمِ لاعباً", marker: "محمي", tone: "protect" },
+  butler: { label: "اختر السيد", marker: "سيد Butler", tone: "info" },
+  sailor: { label: "سجّل الاختيار", marker: "اختيار Sailor", tone: "info" },
+  innkeeper: {
+    label: "احمِ لاعباً",
+    marker: "محمي من Innkeeper",
+    tone: "protect",
+  },
+  devilsadvocate: {
+    label: "احمِ من الإعدام",
+    marker: "محمي من الإعدام",
+    tone: "protect",
+  },
+  exorcist: {
+    label: "اختر الشيطان",
+    marker: "اختيار Exorcist",
+    tone: "info",
+  },
+  pukka: { label: "سمّم لاعباً", marker: "مسموم من Pukka", tone: "poison" },
+  witch: { label: "العن لاعباً", marker: "ملعون", tone: "danger" },
+  cerenovus: {
+    label: "اختر لاعباً",
+    marker: "تأثير Cerenovus",
+    tone: "danger",
+  },
+  pithag: { label: "سجّل الهدف", marker: "تغيير Pit-Hag", tone: "danger" },
+  snakecharmer: {
+    label: "سجّل الاختيار",
+    marker: "اختيار Snake Charmer",
+    tone: "info",
+  },
+};
+function Night({
+  order,
+  players,
+  first,
+  effects,
+  addEffect,
+  removeEffect,
+}) {
+  const [targets, setTargets] = useState({});
+  const [customTarget, setCustomTarget] = useState("");
+  const [customMarker, setCustomMarker] = useState("");
   let inPlay = new Map(players.map((p) => [p.role.name, p]));
   return (
     <div className="night">
+      {effects.length > 0 && (
+        <section className="night-reminders">
+          <header>
+            <b>تذكيرات فعّالة</b>
+            <small>تبقى ظاهرة إلى أن تشيلها</small>
+          </header>
+          {effects.map((effect) => (
+            <button
+              key={effect.id}
+              onClick={() => removeEffect(effect.id)}
+            >
+              <span>{effect.marker}</span>
+              <b>{effect.targetName}</b>
+              <small>{effect.sourceRole}</small>
+              <X />
+            </button>
+          ))}
+        </section>
+      )}
+      <details className="custom-reminder">
+        <summary>أضف تذكيراً يدوياً</summary>
+        <div>
+          <select
+            value={customTarget}
+            onChange={(event) => setCustomTarget(event.target.value)}
+            aria-label="لاعب التذكير اليدوي"
+          >
+            <option value="">اختر اللاعب…</option>
+            {players.map((target) => (
+              <option key={target.id} value={target.id}>
+                {target.name}{target.alive ? "" : " (ميت)"}
+              </option>
+            ))}
+          </select>
+          <input
+            value={customMarker}
+            onChange={(event) => setCustomMarker(event.target.value)}
+            placeholder="مثلاً: مسموم حتى الغد"
+            aria-label="نص التذكير اليدوي"
+          />
+          <button
+            disabled={!customTarget || !customMarker.trim()}
+            onClick={() => {
+              const target = players.find(
+                (candidate) => candidate.id === customTarget,
+              );
+              if (!target) return;
+              addEffect({
+                sourceId: "manual",
+                sourceName: "الراوي",
+                sourceRole: "تذكير يدوي",
+                targetId: target.id,
+                targetName: target.name,
+                marker: customMarker.trim(),
+                tone: "info",
+              });
+              setCustomTarget("");
+              setCustomMarker("");
+            }}
+          >
+            أضف
+          </button>
+        </div>
+      </details>
       {order.map((r, i) => {
         const player = inPlay.get(r);
         const special = nightSpecials[r];
         const specialActive = Boolean(special && players.length >= 7);
         const role = player?.role || officialByName.get(r);
+        const action = player && nightActions[role?.id];
         return (
           <article key={r} className={player || specialActive ? "in" : ""}>
             <span>{i + 1}</span>
@@ -992,6 +1211,48 @@ function Night({ order, players, first }) {
                     abilitiesAr[role.id] ||
                     (first ? role.firstNightReminder : role.otherNightReminder)}
                 </p>
+              )}
+              {action && (
+                <div className="night-action">
+                  <select
+                    value={targets[role.id] || ""}
+                    onChange={(event) =>
+                      setTargets({
+                        ...targets,
+                        [role.id]: event.target.value,
+                      })
+                    }
+                    aria-label={`${action.label} بواسطة ${r}`}
+                  >
+                    <option value="">{action.label}…</option>
+                    {players.map((target) => (
+                      <option key={target.id} value={target.id}>
+                        {target.name}{target.alive ? "" : " (ميت)"}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    disabled={!targets[role.id]}
+                    onClick={() => {
+                      const target = players.find(
+                        (candidate) => candidate.id === targets[role.id],
+                      );
+                      if (!target) return;
+                      addEffect({
+                        sourceId: player.id,
+                        sourceName: player.name,
+                        sourceRole: role.name,
+                        targetId: target.id,
+                        targetName: target.name,
+                        marker: action.marker,
+                        tone: action.tone,
+                      });
+                      setTargets({ ...targets, [role.id]: "" });
+                    }}
+                  >
+                    سجّل
+                  </button>
+                </div>
               )}
             </section>
           </article>
