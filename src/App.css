@@ -487,6 +487,13 @@ h2 {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.token-effect img {
+  width: 12px;
+  height: 12px;
+  margin-left: 3px;
+  object-fit: contain;
+  vertical-align: -3px;
+}
 .token-effect.poison,
 .token-effect.danger {
   border-color: #9a5064;
@@ -1107,6 +1114,109 @@ nav .vote {
 .voters button:disabled {
   opacity: 0.28;
 }
+.butler-vote-warning {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 0 8px;
+  padding: 10px;
+  border: 1px solid #88683f;
+  border-radius: 12px;
+  background: #2d2419;
+}
+.butler-vote-warning > svg {
+  width: 20px;
+  flex: 0 0 auto;
+  color: #d7b66f;
+}
+.butler-vote-warning b,
+.butler-vote-warning small {
+  display: block;
+}
+.butler-vote-warning b {
+  font-size: 0.65rem;
+}
+.butler-vote-warning small {
+  margin-top: 2px;
+  color: #b7a585;
+  font-size: 0.52rem;
+}
+.butler-override {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid #856742;
+  border-radius: 11px;
+  background: transparent;
+  color: #d8b875;
+  font-size: 0.62rem;
+}
+.game-state {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  max-width: 760px;
+  margin: 0 auto 14px;
+  padding: 12px 14px;
+  border: 1px solid #705a3a;
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 90% 0, #cba36520, transparent 48%), #211a22;
+  box-shadow: 0 10px 30px #0004;
+}
+.game-state > svg {
+  width: 25px;
+  color: #d4b36f;
+}
+.game-state small,
+.game-state b,
+.game-state p {
+  display: block;
+}
+.game-state small {
+  color: #aa9caa;
+  font-size: 0.52rem;
+}
+.game-state b {
+  color: #ead7ad;
+  font-size: 0.82rem;
+}
+.game-state p {
+  margin: 2px 0 0;
+  color: #b8adb8;
+  font-size: 0.57rem;
+}
+.game-state > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #342a35;
+}
+.game-state > button svg {
+  width: 14px;
+}
+.game-state.result-good {
+  border-color: #517a6b;
+  background:
+    radial-gradient(circle at 90% 0, #77b69c22, transparent 48%), #17241f;
+}
+.game-state.result-good > svg,
+.game-state.result-good b {
+  color: #a9d7c4;
+}
+.game-state.result-evil {
+  border-color: #8b4657;
+  background:
+    radial-gradient(circle at 90% 0, #b94f6924, transparent 48%), #2a171e;
+}
+.game-state.result-evil > svg,
+.game-state.result-evil b {
+  color: #ef9fb2;
+}
 .night article {
   display: grid;
   grid-template-columns: 35px 1fr auto;
@@ -1462,6 +1572,38 @@ nav .vote {
   background: transparent;
   color: #efb1c0;
   font-size: 0.5rem;
+}
+.spy-trigger {
+  border-color: #526c75;
+  background: #18262c;
+}
+.house-rule-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #4d6871;
+  border-radius: 9px;
+  background: #18272c;
+}
+.house-rule-note > svg {
+  width: 17px;
+  flex: 0 0 auto;
+  color: #8fb8c5;
+}
+.house-rule-note b,
+.house-rule-note small {
+  display: block;
+}
+.house-rule-note b {
+  color: #b0d2dc;
+  font-size: 0.59rem;
+}
+.house-rule-note small {
+  margin-top: 2px;
+  color: #8ca3aa;
+  font-size: 0.49rem;
 }
 .truth-override-warning {
   margin-bottom: 10px;

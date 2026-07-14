@@ -7,6 +7,7 @@ import {
   Eye,
   ExternalLink,
   Hand,
+  Info,
   Lock,
   Moon,
   Plus,
@@ -115,6 +116,9 @@ const dist = {
     savedSeats: {},
     locked: false,
     layout: "circle",
+    gameResult: null,
+    gameNotice: null,
+    mastermindDay: null,
   };
 export default function App() {
   const [g, setG] = useState(() => {
@@ -144,6 +148,34 @@ export default function App() {
     [nominee, setNominee] = useState(""),
     [voters, setVoters] = useState([]);
   useEffect(() => localStorage.setItem("grimoire", JSON.stringify(g)), [g]);
+  useEffect(() => {
+    if (g.screen !== "game" || g.gameResult || g.mastermindDay) return;
+    const actualAlive = g.players.filter(
+      (player) => player.alive || player.secretlyAlive,
+    );
+    const demonAlive = actualAlive.some(
+      (player) => player.role.team === "demon",
+    );
+    if (actualAlive.length <= 2 && demonAlive) {
+      setG((current) => ({
+        ...current,
+        gameResult: {
+          winner: "evil",
+          reason: "لم يبقَ إلا لاعبان والشيطان ما زال حياً.",
+        },
+      }));
+    } else if (!demonAlive) {
+      setG((current) =>
+        current.gameNotice
+          ? current
+          : {
+              ...current,
+              gameNotice:
+                "لا يوجد شيطان حي. إذا لم تنتقل الشيطنة بسبب Imp أو Scarlet Woman أو قدرة أخرى، فالخير يفوز.",
+            },
+      );
+    }
+  }, [g.gameResult, g.mastermindDay, g.players, g.screen]);
   const s = scripts[g.script],
     alive = g.players.filter((p) => p.alive).length,
     need = Math.ceil(alive / 2);
@@ -194,6 +226,9 @@ export default function App() {
       history: [],
       effects: [],
       nightInfo: {},
+      gameResult: null,
+      gameNotice: null,
+      mastermindDay: null,
       locked: Boolean(g.savedSeats && Object.keys(g.savedSeats).length),
       layout: g.layout || "circle",
     });
@@ -203,10 +238,30 @@ export default function App() {
       ...current,
       players: current.players.map((p) => (p.id === id ? { ...p, ...x } : p)),
     }));
-  function saveVote() {
+  const livingButler = g.players.find(
+    (player) => player.alive && player.role.id === "butler",
+  );
+  const butlerMaster = (g.effects || []).find(
+    (effect) =>
+      effect.status === "butler_master" &&
+      effect.sourceId === livingButler?.id,
+  );
+  const illegalButlerVote = Boolean(
+    livingButler &&
+      voters.includes(livingButler.id) &&
+      (!butlerMaster || !voters.includes(butlerMaster.targetId)),
+  );
+  function saveVote(forceButlerVote = false) {
     let target = g.players.find((p) => p.id === nominee);
     let source = g.players.find((p) => p.id === nominator);
-    if (!target || !source || !source.alive || g.phase !== "day") return;
+    if (
+      !target ||
+      !source ||
+      !source.alive ||
+      g.phase !== "day" ||
+      (illegalButlerVote && !forceButlerVote)
+    )
+      return;
     if (todayNominations.some((row) => row.nominatorId === source.id)) return;
     if (todayNominations.some((row) => row.nomineeId === target.id)) return;
     setG({
@@ -228,6 +283,7 @@ export default function App() {
           voterNames: g.players
             .filter((player) => voters.includes(player.id))
             .map((player) => player.name),
+          butlerOverride: illegalButlerVote && forceButlerVote,
         },
         ...g.history,
       ],
@@ -238,23 +294,151 @@ export default function App() {
     setSheet("");
   }
   function finishDay() {
-    setG((current) => ({
-      ...current,
-      players: current.players.map((player) =>
-        onBlock && player.id === onBlock.nomineeId
+    setG((current) => {
+      const executed = onBlock
+        ? current.players.find((player) => player.id === onBlock.nomineeId)
+        : null;
+      const disabled = (player) =>
+        (current.effects || []).some(
+          (effect) =>
+            effect.targetId === player?.id &&
+            ["poisoned", "drunk"].includes(effect.status),
+        );
+      const actualAliveBefore = current.players.filter(
+        (player) => player.alive || player.secretlyAlive,
+      ).length;
+      let players = current.players.map((player) =>
+        executed && player.id === executed.id
           ? { ...player, alive: false }
           : player,
-      ),
-      phase: "night",
-      day: current.day + 1,
-    }));
+      );
+      let gameResult = current.gameResult;
+      let gameNotice = null;
+      let mastermindDay = current.mastermindDay;
+
+      if (mastermindDay?.finalDay === current.day) {
+        const executedIsEvil = ["minion", "demon"].includes(
+          executed?.role.team,
+        );
+        gameResult = {
+          winner: executed ? (executedIsEvil ? "good" : "evil") : "good",
+          reason: executed
+            ? `انتهى يوم الـMastermind بإعدام ${executed.name}؛ فريقه يخسر.`
+            : "انتهى يوم الـMastermind الإضافي بدون إعدام.",
+        };
+        mastermindDay = null;
+      } else if (executed?.role.id === "saint" && !disabled(executed)) {
+        gameResult = {
+          winner: "evil",
+          reason: `أُعدم ${executed.name} وهو Saint سليم، لذلك يفوز فريق الشر.`,
+        };
+      } else if (executed?.role.team === "demon") {
+        if (executed.role.id === "zombuul" && !executed.secretlyAlive) {
+          players = players.map((player) =>
+            player.id === executed.id
+              ? { ...player, secretlyAlive: true }
+              : player,
+          );
+          gameNotice = `${executed.name} يبدو ميتاً، لكنه Zombuul حي سراً للمرة الأولى.`;
+        } else {
+          const scarlet = players.find(
+            (player) =>
+              player.alive &&
+              player.role.id === "scarletwoman" &&
+              !disabled(player),
+          );
+          const mastermind = players.find(
+            (player) =>
+              player.alive && player.role.id === "mastermind" && !disabled(player),
+          );
+          const evilTwin = players.find(
+            (player) => player.alive && player.role.id === "eviltwin",
+          );
+          if (scarlet && actualAliveBefore >= 5) {
+            players = players.map((player) =>
+              player.id === scarlet.id
+                ? { ...player, role: executed.role }
+                : player,
+            );
+            gameNotice = `${scarlet.name} أصبح ${executed.role.name}. اللعبة مستمرة.`;
+          } else if (mastermind) {
+            mastermindDay = {
+              triggerDay: current.day,
+              finalDay: current.day + 1,
+            };
+            gameNotice = `بدأ يوم الـMastermind الإضافي. في اليوم ${current.day + 1} إذا أُعدم لاعب يخسر فريقه، وإذا لم يُعدم أحد يفوز الخير.`;
+          } else if (evilTwin) {
+            gameNotice = "مات الشيطان، لكن Evil Twin حي. تحقّق من التوأم الطيب قبل إعلان فوز الخير.";
+          } else {
+            gameResult = {
+              winner: "good",
+              reason: `أُعدم الشيطان ${executed.name}.`,
+            };
+          }
+        }
+      } else if (!executed) {
+        const vortox = players.find(
+          (player) =>
+            (player.alive || player.secretlyAlive) &&
+            player.role.id === "vortox" &&
+            !disabled(player),
+        );
+        const mayor = players.find(
+          (player) =>
+            player.alive && player.role.id === "mayor" && !disabled(player),
+        );
+        const registeredAlive = players.filter((player) => player.alive).length;
+        if (vortox) {
+          gameResult = {
+            winner: "evil",
+            reason: "انتهى اليوم بدون إعدام والـVortox حي وسليم.",
+          };
+        } else if (mayor && registeredAlive === 3) {
+          gameResult = {
+            winner: "good",
+            reason: `بقي 3 لاعبين ولم يحدث إعدام و${mayor.name} هو Mayor سليم.`,
+          };
+        }
+      }
+
+      const actualAliveAfter = players.filter(
+        (player) => player.alive || player.secretlyAlive,
+      ).length;
+      const demonStillAlive = players.some(
+        (player) =>
+          (player.alive || player.secretlyAlive) && player.role.team === "demon",
+      );
+      if (!gameResult && actualAliveAfter <= 2 && demonStillAlive) {
+        gameResult = {
+          winner: "evil",
+          reason: "لم يبقَ إلا لاعبان والشيطان ما زال حياً.",
+        };
+      }
+      return {
+        ...current,
+        players,
+        phase: gameResult ? current.phase : "night",
+        day: gameResult ? current.day : current.day + 1,
+        gameResult,
+        gameNotice,
+        mastermindDay,
+      };
+    });
     setSheet("");
   }
   function addEffect(effect) {
     setG((current) => ({
       ...current,
       effects: [
-        ...(current.effects || []),
+        ...(current.effects || []).filter(
+          (saved) =>
+            !(
+              effect.status &&
+              ["red_herring", "butler_master"].includes(effect.status) &&
+              saved.status === effect.status &&
+              saved.sourceId === effect.sourceId
+            ),
+        ),
         { ...effect, id: crypto.randomUUID(), day: current.day },
       ],
     }));
@@ -360,6 +544,16 @@ export default function App() {
             <RotateCcw />
           </button>
           <section className="content">
+            {(g.gameResult || g.gameNotice || g.mastermindDay) && (
+              <GameState
+                result={g.gameResult}
+                notice={g.gameNotice}
+                mastermindDay={g.mastermindDay}
+                dismiss={() =>
+                  setG((current) => ({ ...current, gameNotice: null }))
+                }
+              />
+            )}
             {tab === "circle" && (
               <Circle
                 players={g.players}
@@ -529,19 +723,46 @@ export default function App() {
                   >
                     {p.alive ? <UserRound /> : <Skull />}
                     <b>{p.name}</b>
+                    {p.id === livingButler?.id && butlerMaster && (
+                      <small>سيده: {butlerMaster.targetName}</small>
+                    )}
+                    {p.id === butlerMaster?.targetId && (
+                      <small>سيد Butler</small>
+                    )}
                     {!p.alive && (
                       <small>{p.ghost ? "صوت ميت" : "استُخدم"}</small>
                     )}
                   </button>
                 ))}
               </div>
+              {illegalButlerVote && (
+                <div className="butler-vote-warning">
+                  <Info />
+                  <span>
+                    <b>صوت {livingButler.name} غير قانوني حالياً</b>
+                    <small>
+                      {butlerMaster
+                        ? `سيده ${butlerMaster.targetName} لم يصوّت.`
+                        : "لم يُسجّل له سيد من قائمة الليل."}
+                    </small>
+                  </span>
+                </div>
+              )}
               <button
                 className="confirm"
-                disabled={!nominator || !nominee}
-                onClick={saveVote}
+                disabled={!nominator || !nominee || illegalButlerVote}
+                onClick={() => saveVote()}
               >
                 سجّل التصويت
               </button>
+              {illegalButlerVote && nominator && nominee && (
+                <button
+                  className="butler-override"
+                  onClick={() => saveVote(true)}
+                >
+                  احسب الصوت رغم الخطأ
+                </button>
+              )}
             </>
           ) : sheet === "night" ? (
             <Night
@@ -777,9 +998,13 @@ function Circle({
                   key={effect.id}
                   className={`token-effect ${effect.tone}`}
                 >
+                  {effect.icon && <img src={effect.icon} alt="" />}
                   {effect.marker}
                 </span>
               ))}
+              {p.secretlyAlive && (
+                <span className="token-effect danger">حي سراً</span>
+              )}
             </button>
           );
         })}
@@ -790,6 +1015,36 @@ function Circle({
           : "اسحب كل لاعب إلى مكانه الحقيقي، ثم اقفل الترتيب."}
       </p>
     </>
+  );
+}
+function GameState({ result, notice, mastermindDay, dismiss }) {
+  if (result)
+    return (
+      <section className={`game-state result-${result.winner}`}>
+        <Crown />
+        <div>
+          <small>انتهت اللعبة</small>
+          <b>{result.winner === "good" ? "فريق الخير يفوز" : "فريق الشر يفوز"}</b>
+          <p>{result.reason}</p>
+        </div>
+      </section>
+    );
+  return (
+    <section className="game-state game-notice">
+      <Info />
+      <div>
+        <small>{mastermindDay ? "حالة خاصة فعّالة" : "تنبيه حكم اللعبة"}</small>
+        <b>
+          {mastermindDay
+            ? `يوم الـMastermind الأخير: اليوم ${mastermindDay.finalDay}`
+            : notice?.startsWith("لا يوجد شيطان")
+              ? "تحقّق من نهاية اللعبة"
+            : "اللعبة مستمرة"}
+        </b>
+        {notice && <p>{notice}</p>}
+      </div>
+      {notice && <button onClick={dismiss}><X /></button>}
+    </section>
   );
 }
 function Players({ players, roles, patch, onReveal }) {
@@ -903,6 +1158,16 @@ function InformationReveal({ presentation, close }) {
                 </article>
               ))}
             </div>
+          </>
+        ) : presentation.type === "role" ? (
+          <>
+            <span className="information-eyebrow">اقتراح من الراوي</span>
+            <h1>شخصية مقترحة للتنكّر</h1>
+            <div className="information-role-token">
+              <img src={presentation.role.icon} alt={presentation.role.name} />
+            </div>
+            <h2>{presentation.role.name}</h2>
+            <p className="information-lead">احفظ الاسم والقدرة قبل إعادة الجهاز</p>
           </>
         ) : (
           <>
@@ -1106,6 +1371,11 @@ function Log({ rows }) {
                 ) : (
                   <p>تفاصيل المصوّتين غير محفوظة لهذا التصويت القديم.</p>
                 )}
+                {r.butlerOverride && (
+                  <p className="vote-override-note">
+                    حُسب صوت Butler رغم أن سيده لم يصوّت، بقرار الراوي.
+                  </p>
+                )}
               </section>
             )}
           </article>
@@ -1144,6 +1414,13 @@ const nightSpecials = {
   },
 };
 const nightActions = {
+  fortuneteller: {
+    label: "عيّن Red Herring",
+    marker: "Red Herring",
+    tone: "danger",
+    status: "red_herring",
+    goodOnly: true,
+  },
   poisoner: {
     label: "سمّم لاعباً",
     marker: "مسموم",
@@ -1151,7 +1428,13 @@ const nightActions = {
     status: "poisoned",
   },
   monk: { label: "احمِ لاعباً", marker: "محمي", tone: "protect" },
-  butler: { label: "اختر السيد", marker: "سيد Butler", tone: "info" },
+  butler: {
+    label: "اختر السيد",
+    marker: "سيد Butler",
+    tone: "info",
+    status: "butler_master",
+    excludeSelf: true,
+  },
   sailor: {
     label: "حدّد اللاعب السكران",
     marker: "سكران من Sailor",
@@ -1343,6 +1626,21 @@ function Night({
     });
     setOpenInfo("demonBluffs");
   };
+  const prepareSpyBluff = () => {
+    const demonBluffIds = new Set(nightInfo.demonBluffs?.roleIds || []);
+    const bluff = randomFrom(
+      roles.filter(
+        (role) =>
+          ["townsfolk", "outsider"].includes(role.team) &&
+          !inPlayRoleIds.has(role.id) &&
+          !demonBluffIds.has(role.id) &&
+          role.id !== nightInfo.spyBluff?.roleId,
+      ),
+    );
+    if (!bluff) return;
+    saveNightInfo("spyBluff", { roleId: bluff.id });
+    setOpenInfo("spyBluff");
+  };
   return (
     <>
       <div className="night">
@@ -1415,12 +1713,26 @@ function Night({
         const special = nightSpecials[r];
         const specialActive = Boolean(special && players.length >= 7);
         const role = player?.role || officialByName.get(r);
-        const action = player && nightActions[role?.id];
+        const configuredAction = player && nightActions[role?.id];
+        const action =
+          configuredAction && (!configuredAction.firstOnly || first)
+            ? configuredAction
+            : null;
         const canPrepareInfo = Boolean(
           first && player && startingInfoTeams[role?.id],
         );
         const canPrepareBluffs = Boolean(
           first && specialActive && r === "Demon info",
+        );
+        const canPrepareSpyBluff = Boolean(player && role?.id === "spy");
+        const spyBluff = roles.find(
+          (candidate) => candidate.id === nightInfo.spyBluff?.roleId,
+        );
+        const spyBluffIsCurrent = Boolean(
+          canPrepareSpyBluff &&
+            spyBluff &&
+            ["townsfolk", "outsider"].includes(spyBluff.team) &&
+            !inPlayRoleIds.has(spyBluff.id),
         );
         const bluffRoles = (nightInfo.demonBluffs?.roleIds || [])
           .map((roleId) => roles.find((candidate) => candidate.id === roleId))
@@ -1601,6 +1913,57 @@ function Night({
                   )}
                 </>
               )}
+              {canPrepareSpyBluff && (
+                <>
+                  <button
+                    className="night-info-trigger spy-trigger"
+                    onClick={() => {
+                      if (!spyBluffIsCurrent) prepareSpyBluff();
+                      else
+                        setOpenInfo(openInfo === "spyBluff" ? "" : "spyBluff");
+                    }}
+                  >
+                    <span>
+                      {spyBluffIsCurrent
+                        ? "افتح اقتراح تنكّر الـSpy"
+                        : "اقترح شخصية يتنكّر بها الـSpy"}
+                    </span>
+                    <small>{spyBluffIsCurrent ? "جاهز" : "مساعد اختياري"}</small>
+                  </button>
+                  {openInfo === "spyBluff" && spyBluffIsCurrent && (
+                    <section className="starting-info-card spy-bluff-card">
+                      <div className="house-rule-note">
+                        <Info />
+                        <span>
+                          <b>مساعد للراوي، وليس معلومة رسمية</b>
+                          <small>
+                            رسمياً الـSpy يرى الدفتر كاملاً. هذه مجرد شخصية طيبة
+                            غير موجودة تساعده على التمثيل.
+                          </small>
+                        </span>
+                      </div>
+                      <header>
+                        <img src={spyBluff.icon} alt={spyBluff.name} />
+                        <div>
+                          <small>اقتراح التنكّر</small>
+                          <b>{spyBluff.name}</b>
+                        </div>
+                      </header>
+                      <button
+                        className="show-player-info"
+                        onClick={() =>
+                          setPresentation({ type: "role", role: spyBluff })
+                        }
+                      >
+                        <Eye /> اعرض الاقتراح للـSpy
+                      </button>
+                      <button className="reroll-decoy" onClick={prepareSpyBluff}>
+                        غيّر الشخصية المقترحة
+                      </button>
+                    </section>
+                  )}
+                </>
+              )}
               {canPrepareInfo && (
                 <>
                   <button
@@ -1741,11 +2104,18 @@ function Night({
                     aria-label={`${action.label} بواسطة ${r}`}
                   >
                     <option value="">{action.label}…</option>
-                    {players.map((target) => (
+                    {players
+                      .filter(
+                        (target) =>
+                          (!action.excludeSelf || target.id !== player.id) &&
+                          (!action.goodOnly ||
+                            ["townsfolk", "outsider"].includes(target.role.team)),
+                      )
+                      .map((target) => (
                       <option key={target.id} value={target.id}>
                         {target.name}{target.alive ? "" : " (ميت)"}
                       </option>
-                    ))}
+                      ))}
                   </select>
                   <button
                     disabled={!targets[role.id]}
@@ -1763,6 +2133,7 @@ function Night({
                         marker: action.marker,
                         tone: action.tone,
                         status: action.status,
+                        icon: role.icon,
                       });
                       setTargets({ ...targets, [role.id]: "" });
                     }}
