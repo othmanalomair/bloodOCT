@@ -949,6 +949,243 @@ nav .vote {
   color: #756b78;
   font-size: 0.62rem;
 }
+.grimoire-reveal {
+  position: fixed;
+  z-index: 135;
+  inset: 0;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding: max(26px, env(safe-area-inset-top)) 14px
+    max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 18%, #49334e 0, transparent 34%),
+    linear-gradient(#17111b, #0d0a11);
+  color: #f1e7da;
+  animation: reveal-in 0.22s ease-out;
+}
+.grimoire-reveal-head {
+  max-width: 720px;
+  margin: 0 auto 14px;
+  text-align: center;
+}
+.grimoire-reveal-head span {
+  color: #cba365;
+  font-family: Georgia, serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+}
+.grimoire-reveal-head h1 {
+  margin: 3px 0;
+  font-family: "Aref Ruqaa";
+  font-size: clamp(1.8rem, 8vw, 3.5rem);
+}
+.grimoire-reveal-head p {
+  margin: 0;
+  color: #9d919f;
+  font-size: 0.62rem;
+}
+.spy-board {
+  position: relative;
+  width: min(92vw, 720px);
+  aspect-ratio: 1;
+  margin: auto;
+  border: 1px solid #6c596e;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #2c2131 0 22%, transparent 23%),
+    radial-gradient(circle, transparent 0 59%, #cba36512 60% 61%, transparent 62%),
+    #17121d;
+  box-shadow:
+    inset 0 0 70px #0008,
+    0 22px 70px #0008;
+}
+.spy-board.board-rectangle {
+  border-radius: 16%;
+}
+.spy-board-center {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  color: #cba365;
+}
+.spy-board-center svg {
+  width: 25px;
+}
+.spy-board-center small {
+  margin-top: 2px;
+  color: #8d7f90;
+  font-size: 0.45rem;
+}
+.spy-token {
+  position: absolute;
+  width: clamp(48px, 14vw, 92px);
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.spy-token > i {
+  position: relative;
+  display: grid;
+  width: clamp(32px, 9vw, 62px);
+  aspect-ratio: 1;
+  margin: auto;
+  place-items: center;
+  border: 2px solid #e1d3c1;
+  border-radius: 50%;
+  background: #426e84;
+  box-shadow: 0 5px 13px #000a;
+}
+.spy-token.outsider > i {
+  background: #31556e;
+}
+.spy-token.minion > i {
+  background: #714675;
+}
+.spy-token.demon > i {
+  background: #923e42;
+}
+.spy-token > i > img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+.spy-token > i > svg {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  width: 17px;
+  height: 17px;
+  padding: 3px;
+  border-radius: 50%;
+  background: #2d2631;
+  color: #ddd0d3;
+}
+.spy-token > b,
+.spy-token > small,
+.spy-token > em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spy-token > b {
+  margin-top: 2px;
+  font-size: clamp(0.46rem, 2vw, 0.72rem);
+  text-shadow: 0 2px 4px #000;
+}
+.spy-token > small {
+  direction: ltr;
+  color: #d2b36e;
+  font-family: Georgia, serif;
+  font-size: clamp(0.35rem, 1.55vw, 0.55rem);
+}
+.spy-token > em {
+  margin: 1px auto 0;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #3a2635;
+  color: #e5a9ba;
+  font-size: clamp(0.3rem, 1.35vw, 0.46rem);
+}
+.spy-token.dead {
+  opacity: 0.62;
+  filter: grayscale(0.75);
+}
+.spy-ledger {
+  width: min(100%, 720px);
+  margin: 20px auto 0;
+  overflow: hidden;
+  border: 1px solid #493d50;
+  border-radius: 16px;
+  background: #17121d;
+}
+.spy-ledger > header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #3b303f;
+}
+.spy-ledger > header b {
+  font-size: 0.75rem;
+}
+.spy-ledger > header small {
+  color: #8d818f;
+  font-size: 0.52rem;
+}
+.spy-ledger > article {
+  display: grid;
+  grid-template-columns: 22px 42px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-bottom: 1px solid #302735;
+}
+.spy-ledger > article:last-child {
+  border-bottom: 0;
+}
+.spy-ledger > article > span {
+  color: #716877;
+  font-family: Georgia, serif;
+  font-size: 0.62rem;
+}
+.spy-ledger > article > i {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: #426e84;
+}
+.spy-ledger > article.minion > i {
+  background: #714675;
+}
+.spy-ledger > article.demon > i {
+  background: #923e42;
+}
+.spy-ledger > article > i img {
+  width: 75%;
+  height: 75%;
+  object-fit: contain;
+}
+.spy-ledger > article > div > b,
+.spy-ledger > article > div > small {
+  display: block;
+}
+.spy-ledger > article > div > b {
+  font-size: 0.72rem;
+}
+.spy-ledger > article > div > small {
+  direction: ltr;
+  color: #cbaa6e;
+  font-family: Georgia, serif;
+  font-size: 0.56rem;
+}
+.spy-ledger > article p {
+  margin: 3px 0 0;
+  color: #c8b27f;
+  font-size: 0.5rem;
+}
+.spy-ledger > article section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.spy-ledger > article em {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #342432;
+  color: #dfa4b4;
+  font-size: 0.45rem;
+}
+.spy-ledger > article > strong {
+  color: #82b89b;
+  font-size: 0.52rem;
+}
+.spy-ledger > article > strong {
+  white-space: nowrap;
+}
 @keyframes reveal-in {
   from {
     opacity: 0;
@@ -1573,37 +1810,35 @@ nav .vote {
   color: #efb1c0;
   font-size: 0.5rem;
 }
-.spy-trigger {
-  border-color: #526c75;
-  background: #18262c;
-}
-.house-rule-note {
+.show-spy-grimoire {
   display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  margin-bottom: 10px;
-  padding: 8px;
-  border: 1px solid #4d6871;
-  border-radius: 9px;
-  background: #18272c;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #b9985e;
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 90% 0, #d2af6826, transparent 48%), #2a211d;
+  color: #ead8ad;
+  text-align: right;
 }
-.house-rule-note > svg {
-  width: 17px;
+.show-spy-grimoire > svg {
+  width: 22px;
   flex: 0 0 auto;
-  color: #8fb8c5;
 }
-.house-rule-note b,
-.house-rule-note small {
+.show-spy-grimoire span,
+.show-spy-grimoire b,
+.show-spy-grimoire small {
   display: block;
 }
-.house-rule-note b {
-  color: #b0d2dc;
-  font-size: 0.59rem;
+.show-spy-grimoire b {
+  font-size: 0.65rem;
 }
-.house-rule-note small {
-  margin-top: 2px;
-  color: #8ca3aa;
-  font-size: 0.49rem;
+.show-spy-grimoire small {
+  color: #ac9a78;
+  font-size: 0.48rem;
 }
 .truth-override-warning {
   margin-bottom: 10px;

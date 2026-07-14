@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BookOpen,
   Check,
@@ -772,6 +773,7 @@ export default function App() {
               first={g.day === 1}
               effects={g.effects || []}
               nightInfo={g.nightInfo || {}}
+              layout={g.layout || "circle"}
               addEffect={addEffect}
               removeEffect={removeEffect}
               saveNightInfo={saveNightInfo}
@@ -841,6 +843,21 @@ export default function App() {
     </main>
   );
 }
+function seatPosition(kind, index, count) {
+  if (kind === "circle") {
+    const angle = (index / count) * Math.PI * 2;
+    return { x: 50 + 39 * Math.sin(angle), y: 50 - 39 * Math.cos(angle) };
+  }
+  const t = (index / count) * 4;
+  const side = Math.floor(t);
+  const part = t - side;
+  const low = 10;
+  const high = 90;
+  if (side === 0) return { x: low + part * (high - low), y: low };
+  if (side === 1) return { x: high, y: low + part * (high - low) };
+  if (side === 2) return { x: high - part * (high - low), y: high };
+  return { x: low, y: high - part * (high - low) };
+}
 function Circle({
   players,
   patch,
@@ -853,24 +870,9 @@ function Circle({
 }) {
   const board = useRef(null);
   const drag = useRef(null);
-  const positionFor = (kind, index, count) => {
-    if (kind === "circle") {
-      const angle = (index / count) * Math.PI * 2;
-      return { x: 50 + 39 * Math.sin(angle), y: 50 - 39 * Math.cos(angle) };
-    }
-    const t = (index / count) * 4;
-    const side = Math.floor(t);
-    const part = t - side;
-    const low = 10;
-    const high = 90;
-    if (side === 0) return { x: low + part * (high - low), y: low };
-    if (side === 1) return { x: high, y: low + part * (high - low) };
-    if (side === 2) return { x: high - part * (high - low), y: high };
-    return { x: low, y: high - part * (high - low) };
-  };
   const arrange = (kind) => {
     players.forEach((player, index) =>
-      patch(player.id, { pos: positionFor(kind, index, players.length) }),
+      patch(player.id, { pos: seatPosition(kind, index, players.length) }),
     );
     setRoom({ layout: kind });
   };
@@ -970,7 +972,7 @@ function Circle({
           <small>{phase}</small>
         </div>
         {players.map((p, i) => {
-          const pos = p.pos || positionFor(layout, i, players.length);
+          const pos = p.pos || seatPosition(layout, i, players.length);
           const playerEffects = effects.filter(
             (effect) => effect.targetId === p.id,
           );
@@ -1159,16 +1161,6 @@ function InformationReveal({ presentation, close }) {
               ))}
             </div>
           </>
-        ) : presentation.type === "role" ? (
-          <>
-            <span className="information-eyebrow">اقتراح من الراوي</span>
-            <h1>شخصية مقترحة للتنكّر</h1>
-            <div className="information-role-token">
-              <img src={presentation.role.icon} alt={presentation.role.name} />
-            </div>
-            <h2>{presentation.role.name}</h2>
-            <p className="information-lead">احفظ الاسم والقدرة قبل إعادة الجهاز</p>
-          </>
         ) : (
           <>
             <span className="information-eyebrow">معلومات فريق الشر</span>
@@ -1191,6 +1183,84 @@ function InformationReveal({ presentation, close }) {
         <p className="information-return">أعد الجهاز إلى الراوي بعد القراءة</p>
       </div>
     </section>
+  );
+}
+function GrimoireReveal({ players, effects, layout, close }) {
+  return createPortal(
+    <section className="grimoire-reveal" dir="rtl">
+      <button className="reveal-close" onClick={close} aria-label="إغلاق">
+        <X />
+      </button>
+      <header className="grimoire-reveal-head">
+        <span>THE SPY’S GRIMOIRE</span>
+        <h1>هذا هو الدفتر الكامل</h1>
+        <p>الشخصيات والعلامات مرتبة مثل أماكن الجلوس الحقيقية.</p>
+      </header>
+      <div className={`spy-board board-${layout}`}>
+        <div className="spy-board-center">
+          <Eye />
+          <small>دفتر الراوي</small>
+        </div>
+        {players.map((player, index) => {
+          const pos =
+            player.pos || seatPosition(layout, index, players.length);
+          const playerEffects = effects.filter(
+            (effect) => effect.targetId === player.id,
+          );
+          return (
+            <article
+              key={player.id}
+              className={`spy-token ${player.role.team} ${player.alive ? "" : "dead"}`}
+              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+            >
+              <i>
+                <img src={player.role.icon} alt={player.role.name} />
+                {!player.alive && <Skull />}
+              </i>
+              <b>{player.name}</b>
+              <small>{player.role.name}</small>
+              {playerEffects.slice(0, 2).map((effect) => (
+                <em key={effect.id}>{effect.marker}</em>
+              ))}
+            </article>
+          );
+        })}
+      </div>
+      <section className="spy-ledger">
+        <header>
+          <b>تفاصيل الدفتر</b>
+          <small>حسب ترتيب الجلوس</small>
+        </header>
+        {players.map((player, index) => {
+          const playerEffects = effects.filter(
+            (effect) => effect.targetId === player.id,
+          );
+          return (
+            <article key={player.id} className={player.role.team}>
+              <span>{index + 1}</span>
+              <i>
+                <img src={player.role.icon} alt="" />
+              </i>
+              <div>
+                <b>{player.name}</b>
+                <small>{player.role.name}</small>
+                {player.note?.trim() && <p>{player.note}</p>}
+                {playerEffects.length > 0 && (
+                  <section>
+                    {playerEffects.map((effect) => (
+                      <em key={effect.id}>{effect.marker}</em>
+                    ))}
+                  </section>
+                )}
+              </div>
+              <strong>{player.alive ? "حي" : "ميت"}</strong>
+            </article>
+          );
+        })}
+      </section>
+      <p className="information-return">أعد الجهاز إلى الراوي بعد القراءة</p>
+    </section>,
+    document.body,
   );
 }
 const teamNames = {
@@ -1487,6 +1557,7 @@ function Night({
   first,
   effects,
   nightInfo,
+  layout,
   addEffect,
   removeEffect,
   saveNightInfo,
@@ -1496,6 +1567,7 @@ function Night({
   const [customMarker, setCustomMarker] = useState("");
   const [openInfo, setOpenInfo] = useState("");
   const [presentation, setPresentation] = useState(null);
+  const [showGrimoire, setShowGrimoire] = useState(false);
   let inPlay = new Map(players.map((p) => [p.role.name, p]));
   const inPlayRoleIds = new Set(players.map((player) => player.role.id));
   const demonsInPlay = players.filter(
@@ -1626,21 +1698,6 @@ function Night({
     });
     setOpenInfo("demonBluffs");
   };
-  const prepareSpyBluff = () => {
-    const demonBluffIds = new Set(nightInfo.demonBluffs?.roleIds || []);
-    const bluff = randomFrom(
-      roles.filter(
-        (role) =>
-          ["townsfolk", "outsider"].includes(role.team) &&
-          !inPlayRoleIds.has(role.id) &&
-          !demonBluffIds.has(role.id) &&
-          role.id !== nightInfo.spyBluff?.roleId,
-      ),
-    );
-    if (!bluff) return;
-    saveNightInfo("spyBluff", { roleId: bluff.id });
-    setOpenInfo("spyBluff");
-  };
   return (
     <>
       <div className="night">
@@ -1725,15 +1782,6 @@ function Night({
           first && specialActive && r === "Demon info",
         );
         const canPrepareSpyBluff = Boolean(player && role?.id === "spy");
-        const spyBluff = roles.find(
-          (candidate) => candidate.id === nightInfo.spyBluff?.roleId,
-        );
-        const spyBluffIsCurrent = Boolean(
-          canPrepareSpyBluff &&
-            spyBluff &&
-            ["townsfolk", "outsider"].includes(spyBluff.team) &&
-            !inPlayRoleIds.has(spyBluff.id),
-        );
         const bluffRoles = (nightInfo.demonBluffs?.roleIds || [])
           .map((roleId) => roles.find((candidate) => candidate.id === roleId))
           .filter(Boolean);
@@ -1914,55 +1962,16 @@ function Night({
                 </>
               )}
               {canPrepareSpyBluff && (
-                <>
-                  <button
-                    className="night-info-trigger spy-trigger"
-                    onClick={() => {
-                      if (!spyBluffIsCurrent) prepareSpyBluff();
-                      else
-                        setOpenInfo(openInfo === "spyBluff" ? "" : "spyBluff");
-                    }}
-                  >
-                    <span>
-                      {spyBluffIsCurrent
-                        ? "افتح اقتراح تنكّر الـSpy"
-                        : "اقترح شخصية يتنكّر بها الـSpy"}
-                    </span>
-                    <small>{spyBluffIsCurrent ? "جاهز" : "مساعد اختياري"}</small>
-                  </button>
-                  {openInfo === "spyBluff" && spyBluffIsCurrent && (
-                    <section className="starting-info-card spy-bluff-card">
-                      <div className="house-rule-note">
-                        <Info />
-                        <span>
-                          <b>مساعد للراوي، وليس معلومة رسمية</b>
-                          <small>
-                            رسمياً الـSpy يرى الدفتر كاملاً. هذه مجرد شخصية طيبة
-                            غير موجودة تساعده على التمثيل.
-                          </small>
-                        </span>
-                      </div>
-                      <header>
-                        <img src={spyBluff.icon} alt={spyBluff.name} />
-                        <div>
-                          <small>اقتراح التنكّر</small>
-                          <b>{spyBluff.name}</b>
-                        </div>
-                      </header>
-                      <button
-                        className="show-player-info"
-                        onClick={() =>
-                          setPresentation({ type: "role", role: spyBluff })
-                        }
-                      >
-                        <Eye /> اعرض الاقتراح للـSpy
-                      </button>
-                      <button className="reroll-decoy" onClick={prepareSpyBluff}>
-                        غيّر الشخصية المقترحة
-                      </button>
-                    </section>
-                  )}
-                </>
+                <button
+                  className="show-spy-grimoire"
+                  onClick={() => setShowGrimoire(true)}
+                >
+                  <Eye />
+                  <span>
+                    <b>اعرض الدفتر الكامل للـSpy</b>
+                    <small>الطاولة، الشخصيات، العلامات والملاحظات</small>
+                  </span>
+                </button>
               )}
               {canPrepareInfo && (
                 <>
@@ -2152,6 +2161,14 @@ function Night({
         <InformationReveal
           presentation={presentation}
           close={() => setPresentation(null)}
+        />
+      )}
+      {showGrimoire && (
+        <GrimoireReveal
+          players={players}
+          effects={effects}
+          layout={layout}
+          close={() => setShowGrimoire(false)}
         />
       )}
     </>
